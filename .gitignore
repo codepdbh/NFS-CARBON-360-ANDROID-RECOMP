@@ -1,0 +1,15 @@
+generated/default/
+generated/carbon_recovered_thunks.cpp
+out/
+*.log
+*.xex
+*.iso
+*.bin
+*.nfsp
+__pycache__/
+.venv/
+CMakeUserPresets.json
+*.zip
+*.7z
+*.wmv
+*.xma

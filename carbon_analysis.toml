@@ -1,0 +1,22 @@
+# Initial analysis found direct branches to these executable addresses without
+# function ownership. Declare the destinations and let discovery find bounds.
+# Keep registers in the shared PPC context for this initial bring-up.
+# Local Carbon gap analysis now splits computed tail calls at bctr.
+cr_as_local = false
+xer_as_local = false
+ctr_as_local = false
+non_volatile_as_local = false
+
+[functions]
+# b 0x82A65510 at 0x82A65974.
+"0x82A65510" = { }
+# b 0x82321850 at 0x823002A8.
+"0x82321850" = { }
+# b 0x82A62188 at 0x82A62FBC.
+"0x82A62188" = { }
+# First PC boot calls this entry indirectly during resource initialization.
+# It lies after the four-instruction thunk at 0x824DAA90 and is not registered
+# by automatic discovery. Keep its implementation from the original binary.
+"0x824DAAA0" = { }
+# Original eight-instruction setup reached while entering Career.
+"0x825BF6A0" = { }
