@@ -28,6 +28,12 @@ class NfscarbonApp : public rex::ReXApp {
     config.gpu_plugin = "xenos";
   }
 
+#if REX_PLATFORM_ANDROID
+  void OnConfigurePaths(rex::PathConfig& paths) override {
+    paths.config_path = paths.user_data_root / "nfscarbon.toml";
+  }
+#endif
+
   void OnPreLaunchModule() override {
     CarbonRegisterMissingEntries(runtime()->function_dispatcher(),
                                   runtime()->virtual_membase());

@@ -1,0 +1,41 @@
+plugins { id 'com.android.application' }
+
+def carbonSdk = providers.gradleProperty('rexSdkDir')
+        .orElse("$rootDir/../../nfsmw-android/sdk").get()
+
+android {
+    namespace 'com.nfscarbon.android'
+    compileSdk 35
+    sourceSets {
+        main.java.srcDirs += ["$carbonSdk/thirdparty/sdl3/android-project/app/src/main/java"]
+    }
+    defaultConfig {
+        applicationId 'com.nfscarbon.android'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-experimental'
+        ndk { abiFilters 'arm64-v8a' }
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++23'
+                arguments '-DANDROID_STL=c++_shared', "-DREXSDK_DIR=$carbonSdk"
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+            externalNativeBuild { cmake { arguments '-DCMAKE_BUILD_TYPE=Release' } }
+        }
+    }
+    externalNativeBuild {
+        cmake { path file('src/main/cpp/CMakeLists.txt'); version '3.30.5' }
+    }
+    ndkVersion '28.2.13676358'
+}
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+}

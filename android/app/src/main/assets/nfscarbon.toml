@@ -1,0 +1,9 @@
+# NFS Carbon 360: first Android bring-up uses the SDK's Xenos renderer.
+gpu_plugin = "xenos"
+vulkan_native_shader_features = false
+render_target_path_vulkan = "fbo"
+vulkan_require_geometry_shader = false
+vulkan_require_fill_mode_non_solid = false
+async_shader_compilation = false
+present_letterbox = false
+user_language = 1

@@ -13,3 +13,14 @@ CMakeUserPresets.json
 *.7z
 *.wmv
 *.xma
+android/.gradle/
+android/.cxx/
+android/app/.cxx/
+android/app/build/
+android/build/
+android/local.properties
+android/icono/
+*.apk
+*.aab
+*.jks
+*.keystore
