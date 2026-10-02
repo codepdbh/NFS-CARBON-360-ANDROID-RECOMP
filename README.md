@@ -5,8 +5,8 @@ basada en ReXGlue. Traduce el código PowerPC de una copia del juego a C++ y lo
 compila para Windows x64, con el backend gráfico Xenos / Direct3D 12.
 El nombre del proyecto no implica que se haya recuperado el código fuente original.
 
-**Estado al 1 de octubre de 2026:** el usuario confirmó las intros con imagen y
-sonido, el menú principal y el acceso a la historia después de la carga.
+**Estado al 2 de octubre de 2026:** el usuario confirmó las intros con imagen y
+sonido, el menú principal, la cinemática inicial de historia y que llega a conducir.
 Todavía falta validar carreras completas, progreso guardado y otros equipos.
 Es una prueba para PC; actualmente no hay APK Android.
 
@@ -132,13 +132,16 @@ Los mandos usan el backend SDL. La compatibilidad de cada mando sigue pendiente.
 - `src/carbon_missing_entries.cpp`: traducciones adicionales que comprueban la
   secuencia original antes de registrarse y se omiten si el generador ya las cubre.
 - `tools/recover_small_entries.py` y `tools/verify_small_entries.py`: recuperan
-  secuencias acotadas de dos instrucciones y verifican sus registros, inmediatos
-  y destinos contra Capstone. Pasaron las 35.030 entradas recuperadas de esta copia.
+  secuencias acotadas de dos instrucciones y de tres instrucciones
+  (`li/lis; stw; b` a una entrada existente). Verifican los registros, inmediatos
+  y destinos contra Capstone. Pasaron las 35.084 entradas recuperadas de esta copia,
+  incluidas 54 inicializaciones de campo seguidas de salto. Una de ellas cubre
+  el cierre posterior a la cinemática en `0x82287360`.
 - `tests/story_entry_checks.cpp`: pasaron 40 casos de recursos, estados y entrega
   de argumentos, incluyendo las escrituras de memoria y registros conservados.
 
-La entrada a historia está confirmada por la prueba del usuario. En esa misma
-sesión también se registraron advertencias de texturas y un cierre posterior del
+La entrada a historia y el acceso a la conducción están confirmados por la prueba
+del usuario. En una sesión previa se registraron advertencias de texturas y un cierre del
 controlador D3D12 (`DEVICE_HUNG`, `0x887A0006`). La estabilidad gráfica sigue
 pendiente de corrección. Estas comprobaciones no validan todas las rutas del juego.
 
@@ -154,6 +157,27 @@ Para investigar una dirección del registro usando el volcado local:
 ```powershell
 python tools/inspect_image.py 0x824DAAA0
 ```
+
+Para investigar un bloqueo de la GPU, el launcher tiene un modo de diagnóstico:
+
+```powershell
+.\run_pc.ps1 -GpuDiagnostics
+```
+
+Activa la capa de depuración de D3D12, DRED y marcadores gráficos. El registro de
+esa sesión se guarda por separado en `out/runtime/carbon-gpu-*.log`; su ruta queda
+en `out/runtime/current-log.txt`. Si falta la capa de depuración, el SDK lo avisa
+en el registro. Este modo sirve para diagnóstico y puede reducir el rendimiento.
+
+También se pueden comparar las implementaciones del renderizado del SDK, cerrando
+la sesión anterior antes de iniciar otra:
+
+```powershell
+.\run_pc.ps1 -GpuDiagnostics -RenderTargetPath rtv
+.\run_pc.ps1 -GpuDiagnostics -RenderTargetPath rov
+```
+
+Son opciones de prueba; su resultado en las carreras de Carbon aún no está validado.
 
 ## Créditos
 
