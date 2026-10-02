@@ -46,3 +46,5 @@ try {
 } finally {
     Pop-Location
 }
+# Native warnings on stderr must not turn a successful Gradle build into exit 1.
+exit 0

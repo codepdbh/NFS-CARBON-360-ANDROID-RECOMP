@@ -19,17 +19,32 @@ final class GameOptions {
             return value;
         }
     }
-    // Xbox 360 language IDs, consumed by Carbon through XGetLanguage.
+    // Xbox 360 language IDs, mapped to Carbon's startup resource IDs by its hook.
     static final Option LANGUAGE = new Option("language", "Idioma del juego", "user_language", "1",
-        new String[]{"1", "5", "9", "4", "3", "6", "2", "7", "8"},
-        new String[]{"Inglés", "Español", "Português", "Français", "Deutsch", "Italiano",
-            "日本語", "한국어", "繁體中文"});
+        new String[]{"1", "5", "4", "3", "6"},
+        new String[]{"Inglés", "Español", "Français", "Deutsch", "Italiano"});
     static final Option[] ALL = {
         LANGUAGE,
+        new Option("resolution", "Resolución interna", "carbon_resolution", "1024x576",
+            new String[]{"640x360", "1024x576", "1280x720"},
+            new String[]{"640×360 · rendimiento", "1024×576 · equilibrado", "1280×720 · calidad"}),
+        new Option("fps", "Ritmo objetivo (FPS)", null, "60",
+            new String[]{"30", "60", "90", "120", "unlimited"},
+            new String[]{"30 FPS", "60 FPS", "90 FPS · experimental", "120 FPS · experimental", "Sin límite · experimental"}),
+        new Option("single_pass", "Antialiasing de la escena", "carbon_single_pass", "true",
+            new String[]{"true", "false"}, new String[]{"Desactivado · rendimiento", "Original · más carga"}),
         new Option("vsync", "Sincronización vertical", "vsync", "true",
             new String[]{"true", "false"}, new String[]{"Activada", "Desactivada"}),
-        new Option("async", "Compilación de shaders", "async_shader_compilation", "false",
-            new String[]{"false", "true"}, new String[]{"Completa · primera prueba", "Asíncrona · experimental"}),
+        new Option("async", "Compilación de shaders", "async_shader_compilation", "true",
+            new String[]{"false", "true"}, new String[]{"Completa · más pausas", "En segundo plano"}),
+        new Option("workers", "Trabajadores de shaders", "vulkan_pipeline_creation_threads", "2",
+            new String[]{"1", "2", "4", "-1"}, new String[]{"1", "2 · recomendado", "4", "Automático"}),
+        new Option("cpu", "CPU del juego", "carbon_fast_cores", "true",
+            new String[]{"true", "false"}, new String[]{"Preferir núcleos rápidos", "Sistema"}),
+        new Option("fps_overlay", "Contador de FPS", null, "true",
+            new String[]{"true", "false"}, new String[]{"Visible", "Oculto"}),
+        new Option("diagnostics", "Registros", null, "normal",
+            new String[]{"normal", "detailed"}, new String[]{"Solo avisos y errores", "Detallados + tiempos"}),
     };
     static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences("nfscarbon_game", Context.MODE_PRIVATE);
@@ -52,7 +67,24 @@ final class GameOptions {
         args.add("--vulkan_require_geometry_shader=false");
         args.add("--vulkan_require_fill_mode_non_solid=false");
         args.add("--headless=true");
-        for (Option option : ALL) args.add("--" + option.cvar + "=" + get(context, option.key));
+        String size = "true".equals(get(context, "single_pass")) ? get(context, "resolution") : "1280x720";
+        String[] dimensions = size.split("x");
+        args.add("--resolution=");
+        args.add("--video_mode_width=" + dimensions[0]);
+        // The SDK's console video mode has a 480-line minimum. The scene/output
+        // hooks independently apply the selected 360-line extent.
+        args.add("--video_mode_height=" + Math.max(480, Integer.parseInt(dimensions[1])));
+        String fps = get(context, "fps");
+        args.add("--video_mode_refresh_rate=" + ("unlimited".equals(fps) ? "240" : fps));
+        args.add("--vulkan_async_skip_incomplete_frames=true");
+        boolean detailed = "detailed".equals(get(context, "diagnostics"));
+        args.add("--log_level=" + (detailed ? "info" : "warn"));
+        args.add("--carbon_perf_csv=" + detailed);
+        for (Option option : ALL) if (option.cvar != null) {
+            String value = get(context, option.key);
+            if ("vsync".equals(option.key) && "unlimited".equals(fps)) value = "false";
+            args.add("--" + option.cvar + "=" + value);
+        }
         return args;
     }
 }

@@ -1,0 +1,13 @@
+// Enable only per-frame counters, without instrumenting every draw or PPC call.
+// The included implementation retains ReXGlue / Xenia's BSD license notices.
+#define REXGLUE_ENABLE_PERF_COUNTERS 1
+#include "@CMAKE_CURRENT_LIST_DIR@/carbon_gpu_wait.h"
+namespace { CarbonGpuWait carbon_gpu_wait; }
+extern "C" __attribute__((visibility("default"))) uint32_t CarbonGpuGeneration() {
+  return carbon_gpu_wait.generation();
+}
+extern "C" __attribute__((visibility("default"))) void CarbonWaitGpu(uint32_t seen) {
+  carbon_gpu_wait.wait(seen);
+}
+static void CarbonNotifyGpu() { carbon_gpu_wait.notify(); }
+#include "carbon_command_processor.cpp"

@@ -125,13 +125,15 @@ no garantiza que cualquier GPU pueda ejecutar el renderizador.
 
 1. Instala el APK y permite la instalación desde esa fuente si Android lo pide.
 2. Copia tu edición Xbox 360 comprobada a `Memoria interna/NFSCARBON`, o usa
-   **Importar mi copia de Xbox 360**. La importación crea una copia nueva y
+   **Importar mi copia**. La importación crea una copia nueva y
    conserva como respaldo una carpeta anterior: requiere espacio adicional.
-3. Abre el launcher, pulsa **Permitir acceso a la carpeta del juego** y concede
+3. Abre el launcher, pulsa **Permitir acceso** y concede
    el permiso de acceso a archivos. Vuelve al launcher.
 4. Selecciona **Idioma del juego** y pulsa **Jugar**. La elección queda guardada
-   y se aplica al siguiente arranque. Se envía el idioma de Xbox 360 al juego;
-   no se descargan traducciones ni doblajes. Esta copia contiene videos en inglés.
+   y se aplica al siguiente arranque. Carbon carga sus recursos de texto en inglés,
+   español, francés, alemán o italiano. No se descargan traducciones ni doblajes.
+   Si falta un video del idioma elegido, se usa el video inglés que ya contiene
+   esta copia, mediante un alias virtual que no duplica archivos.
 5. Usa **Start** y **A** para avanzar por las pantallas. Los controles pueden
    ajustarse desde el botón de configuración durante el juego.
 
@@ -160,6 +162,67 @@ desconecta la superficie Vulkan al minimizarse y la crea de nuevo al regresar.
 La tabla de imagen registra las mismas 73.177 parejas dirección/función que el
 ayudante generado omitido de la compilación móvil, comprobadas por
 `tools/verify_registration_maps.py` antes de compilar.
+
+El launcher usa dos columnas y tarjetas como Most Wanted, con los colores de
+Carbon. Jugar e Importar quedan visibles mientras la lista de ajustes se desplaza.
+La versión 0.2.0 añade estas opciones de rendimiento:
+
+- **Resolución interna:** 640×360, 1024×576 o 1280×720. El modo sin antialiasing
+  configura el renderizado y la salida del juego, con una sola tesela. Con
+  antialiasing Original se restaura el modo original a 1280×720.
+- **Ritmo objetivo:** 30, 60, 90, 120 o Sin límite. Ajusta el vblank virtual que
+  cuenta el juego y solicita un modo compatible al panel. Sin límite desactiva
+  VSync y usa un vblank virtual de 240 Hz; no es una garantía de FPS ni elimina
+  necesariamente todos los límites del motor. Los modos altos son experimentales.
+- **Compilación de shaders:** en segundo plano por defecto. Vulkan conserva
+  la última imagen completa mientras termina los pipelines pendientes, para
+  evitar dibujar fotogramas incompletos. Si aparecen problemas, prueba Completa.
+- **Trabajadores de shaders:** 2 por defecto, en lugar de ocupar automáticamente
+  tres cuartas partes de los núcleos del dispositivo. Se puede elegir 1, 2, 4 o
+  Automático para comparar.
+- **CPU del juego:** puede preferir núcleos rápidos según la capacidad que
+  expone el kernel; si no está disponible, usa la frecuencia máxima como
+  alternativa. La capacidad contempla diferencias de arquitectura y frecuencia
+  ([documentación del kernel](https://docs.kernel.org/scheduler/sched-capacity.html)).
+  Conserva la máscara permitida por Android y no
+  cambia nada si los núcleos son equivalentes, no se leen los datos o
+  quedarían menos de dos núcleos. No modifica los hilos de la interfaz Android.
+- **Registros:** Solo avisos y errores evita escribir la actividad normal de
+  cada sesión. Detallados + tiempos añade `carbon-frames.csv` al informe de esa
+  sesión, para comparar tiempos y pausas sin instrumentar todas las llamadas PPC.
+- **Contador de FPS:** muestra la cadencia del último fotograma solicitado por
+  el juego, medida en los swaps del motor. No mide el refresco de la pantalla
+  ni cuenta cuántas imágenes nuevas mostró el compositor.
+
+El launcher se comprobó en Android 16, tanto en un dispositivo virtual como en
+un Samsung S25 Ultra: ajustes persistentes, selección de idioma, permisos,
+estructura de archivos y rechazo de un XEX incorrecto. En el teléfono se verificó
+el texto español y la conducción. Las primeras pruebas de conducción registraron
+7–10 FPS incluso a 1024×576, por lo que bajar la resolución por sí solo no resuelve
+el rendimiento.
+
+El perfil de CPU detectó una espera activa del D3D de Carbon y un bucle de eventos
+de SDL en Android. La espera ahora recibe avisos de progreso de la GPU, con un
+plazo de 500 µs antes de volver a las comprobaciones originales; el bucle de SDL
+ya no se despierta por sus propios eventos centinela. Ambos hilos dejaron de
+ocupar continuamente un núcleo, aunque esa prueba todavía produjo 7–10 FPS.
+También se incorporan las llamadas directas y ThinLTO usadas por Most Wanted,
+preservando los complementos y tablas de despacho, y una lectura del mapa de
+memoria sin asignaciones por línea. Carbon sigue utilizando Xenos del SDK;
+el renderizador Vulkan propio de Most Wanted requiere adaptación específica.
+
+El APK final con llamadas directas, ThinLTO y la consulta de memoria acelerada
+compiló y se instaló en el S25. Las pruebas se detuvieron a petición del usuario
+antes de recibir una medición de conducción de esa última versión; su mejora de
+FPS queda pendiente de comprobación. No se publica una cifra de mejora.
+
+La compilación permite perfiles locales mediante `simpleperf` por ADB
+([documentación de Android](https://developer.android.com/guide/topics/manifest/profileable-element)).
+`tests/gpu_wait_checks.cpp` comprueba avisos anteriores al registro, tiempos de
+espera y varios consumidores. `tests/proc_maps_checks.cpp` comprueba límites de
+lectura, rutas largas, huecos y cambios reales de `mprotect`; ambas pruebas se
+ejecutaron en ARM64 en el S25. `tests/android_direct_calls_checks.py` comprueba
+que la optimización conserva los complementos, entradas no resueltas y tablas.
 
 ## Controles de PC
 

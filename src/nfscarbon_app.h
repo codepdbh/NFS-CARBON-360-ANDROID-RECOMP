@@ -13,6 +13,12 @@ REXCVAR_DECLARE(bool, carbon_dump_image);
 #ifdef CARBON_RECOVERED_THUNKS
 void CarbonRegisterRecoveredEntries(rex::runtime::FunctionDispatcher*, uint8_t*);
 #endif
+#if REX_PLATFORM_ANDROID
+void CarbonConfigureAndroidCpu();
+void CarbonVerifyGraphicsHooks(uint8_t*);
+void CarbonConfigureMovieFallback(rex::filesystem::VirtualFileSystem*, const std::filesystem::path&);
+void CarbonStartAndroidFrameLog(const std::filesystem::path&);
+#endif
 
 class NfscarbonApp : public rex::ReXApp {
  public:
@@ -26,6 +32,9 @@ class NfscarbonApp : public rex::ReXApp {
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
     config.gpu_plugin = "xenos";
+#if REX_PLATFORM_ANDROID
+    CarbonConfigureAndroidCpu();
+#endif
   }
 
 #if REX_PLATFORM_ANDROID
@@ -35,6 +44,11 @@ class NfscarbonApp : public rex::ReXApp {
 #endif
 
   void OnPreLaunchModule() override {
+#if REX_PLATFORM_ANDROID
+    CarbonVerifyGraphicsHooks(runtime()->virtual_membase());
+    CarbonConfigureMovieFallback(runtime()->file_system(), runtime()->game_data_root());
+    CarbonStartAndroidFrameLog(runtime()->user_data_root() / "logs");
+#endif
     CarbonRegisterMissingEntries(runtime()->function_dispatcher(),
                                   runtime()->virtual_membase());
 #ifdef CARBON_RECOVERED_THUNKS

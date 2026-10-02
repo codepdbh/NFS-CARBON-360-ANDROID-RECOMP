@@ -9,6 +9,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="NFS Carbon 360" android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
+        <profileable android:shell="true" />
         <provider android:name=".ReportFileProvider" android:authorities="${applicationId}.reports"
             android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/report_paths" />

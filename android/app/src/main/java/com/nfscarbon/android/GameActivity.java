@@ -15,6 +15,8 @@ import android.hardware.input.InputManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -62,8 +64,22 @@ public final class GameActivity extends SDLActivity
     private InputManager inputManager;
     private SensorManager sensorManager;
     private Sensor gravity;
+    private TextView fpsLabel;
+    private final Handler frameHandler = new Handler(Looper.getMainLooper());
+    private final Runnable updateFrames = new Runnable() {
+        @Override public void run() {
+            if (fpsLabel == null || isFinishing()) return;
+            try {
+                long frameUs = nativeFrameTimeUs();
+                fpsLabel.setText(frameUs > 0 ? String.format(java.util.Locale.ROOT,
+                        "%.0f FPS · %.1f ms", 1000000.0 / frameUs, frameUs / 1000.0) : "FPS · cargando…");
+            } catch (UnsatisfiedLinkError ignored) { fpsLabel.setText("FPS · cargando…"); }
+            frameHandler.postDelayed(this, 1000);
+        }
+    };
 
     private static native void nativeSetStretch(boolean stretch);
+    private static native long nativeFrameTimeUs();
 
     @Override
     protected void onCreate(Bundle state) {
@@ -96,6 +112,18 @@ public final class GameActivity extends SDLActivity
         FrameLayout.LayoutParams barParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
         root.addView(toolbar, barParams);
+        if ("true".equals(GameOptions.get(this, "fps_overlay"))) {
+            fpsLabel = new TextView(this);
+            fpsLabel.setTextColor(Color.WHITE);
+            fpsLabel.setTextSize(12);
+            fpsLabel.setPadding(dp(8), dp(4), dp(8), dp(4));
+            fpsLabel.setBackgroundColor(0x99081017);
+            FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+            frameParams.topMargin = dp(62);
+            root.addView(fpsLabel, frameParams);
+        }
 
         inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -120,7 +148,8 @@ public final class GameActivity extends SDLActivity
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             attrs.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
-        int fps = 60;
+        String requestedFps = GameOptions.get(this, "fps");
+        int fps = "unlimited".equals(requestedFps) ? 240 : Integer.parseInt(requestedFps);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Display display = getWindowManager().getDefaultDisplay();
             Display.Mode best = null;
@@ -134,6 +163,10 @@ public final class GameActivity extends SDLActivity
                     best = mode;
                 }
             }
+            if (best == null) for (Display.Mode mode : display.getSupportedModes()) {
+                if (mode.getPhysicalWidth() == display.getMode().getPhysicalWidth()
+                        && (best == null || mode.getRefreshRate() > best.getRefreshRate())) best = mode;
+            }
             if (best != null) {
                 attrs.preferredDisplayModeId = best.getModeId();
             }
@@ -145,6 +178,8 @@ public final class GameActivity extends SDLActivity
     @Override
     protected void onResume() {
         super.onResume();
+        frameHandler.removeCallbacks(updateFrames);
+        if (fpsLabel != null) frameHandler.post(updateFrames);
         if (inputManager != null) {
             inputManager.registerInputDeviceListener(this, null);
             refreshGamepads();
@@ -163,6 +198,7 @@ public final class GameActivity extends SDLActivity
 
     @Override
     protected void onPause() {
+        frameHandler.removeCallbacks(updateFrames);
         if (inputManager != null) {
             inputManager.unregisterInputDeviceListener(this);
         }
@@ -184,7 +220,6 @@ public final class GameActivity extends SDLActivity
         File logs = new File(userRoot, "logs");
         logs.mkdirs();
         args.add("--log_file=" + new File(logs, "carbon.log").getAbsolutePath());
-        args.add("--log_level=info");
         // The launcher's graphics options win over nfscarbon.toml.
         args.addAll(GameOptions.arguments(this));
         if (getSharedPreferences("nfscarbon_controls", MODE_PRIVATE).getBoolean("stretch", true)) {

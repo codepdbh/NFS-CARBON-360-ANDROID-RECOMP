@@ -105,6 +105,10 @@ final class Diagnostics {
             add(zip, "gpu.json", gpu().toString(2).getBytes(StandardCharsets.UTF_8));
             addFile(zip, "last-java-crash.txt", new File(context.getFilesDir(), "last-java-crash.txt"));
             File logs = new File(context.getFilesDir(), "nfscarbon/user/logs");
+            File frames = new File(logs, "carbon-frames.csv");
+            long lastLaunch = context.getSharedPreferences("nfscarbon_diagnostics", 0).getLong("last_launch_ms", 0);
+            if (lastLaunch > 0 && frames.lastModified() >= lastLaunch)
+                addFile(zip, "native/carbon-frames.csv", frames);
             File[] nativeLogs = logs.listFiles(file -> file.isFile() && file.getName().endsWith(".log"));
             if (nativeLogs != null) {
                 Arrays.sort(nativeLogs, Comparator.comparingLong(File::lastModified).reversed());

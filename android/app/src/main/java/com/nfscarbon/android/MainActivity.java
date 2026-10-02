@@ -1,3 +1,4 @@
+// Launcher styling adapted from codepdbh/nfsmw-android (5f581c6). SPDX-License-Identifier: GPL-3.0-only
 package com.nfscarbon.android;
 
 import android.Manifest;
@@ -7,17 +8,18 @@ import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.widget.ImageView;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.widget.Button;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.view.View;
 import android.widget.Toast;
@@ -38,70 +40,207 @@ public final class MainActivity extends Activity {
     private TextView status;
     private Button play, importButton;
     private boolean busy;
+    private LinearLayout checks, optionsList;
+    private Button accessButton;
+    private static final int ACCENT = 0xFFFF4A43;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(0xFF111820);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        int padding = dp(22);
-        content.setPadding(padding, padding, padding, padding);
-        scroll.addView(content);
-        TextView title = text("NEED FOR SPEED CARBON", 26);
-        title.setTextColor(0xFFFFA33A);
-        content.addView(title);
-        content.addView(text("Xbox 360 · prueba Android · controles táctiles", 15));
-        content.addView(text("Coloca tu copia extraída de Xbox 360 en Memoria interna/" + GAME_FOLDER_NAME
-                + ", con default.xex, NFS y Movies. También puedes importar una carpeta.", 14));
-        status = text("Comprobando archivos…", 14);
-        content.addView(status);
-        content.addView(text("Idioma del juego", 16));
-        Spinner language = new Spinner(this);
-        ArrayAdapter<String> languages = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, GameOptions.LANGUAGE.labels);
-        languages.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        language.setAdapter(languages);
-        for (int i = 0; i < GameOptions.LANGUAGE.values.length; i++) {
-            if (GameOptions.LANGUAGE.values[i].equals(GameOptions.get(this, "language")))
-                language.setSelection(i);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
+        setContentView(buildScreen());
+    }
+
+    private View buildScreen() {
+        LinearLayout columns = new LinearLayout(this);
+        columns.setOrientation(LinearLayout.HORIZONTAL);
+        columns.setPadding(dp(24), dp(16), dp(24), dp(16));
+        columns.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF0A1019, 0xFF261316, 0xFF0A1019}));
+
+        LinearLayout left = new LinearLayout(this);
+        left.setOrientation(LinearLayout.VERTICAL);
+        columns.addView(left, new LinearLayout.LayoutParams(0, -1, 1.05f));
+
+        LinearLayout heading = new LinearLayout(this);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.mipmap.ic_launcher);
+        icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        heading.addView(icon, new LinearLayout.LayoutParams(dp(78), dp(78)));
+        LinearLayout name = new LinearLayout(this);
+        name.setOrientation(LinearLayout.VERTICAL);
+        name.setPadding(dp(14), 0, 0, 0);
+        name.addView(label("NEED FOR SPEED", 12, 0xFFB8C1CE, true));
+        name.addView(label("CARBON", 32, Color.WHITE, true));
+        name.addView(label("ANDROID EVOLVED · XBOX 360", 11, ACCENT, true));
+        heading.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+        left.addView(heading);
+
+        LinearLayout files = card();
+        files.setPadding(dp(16), dp(10), dp(16), dp(10));
+        ScrollView filesScroll = new ScrollView(this);
+        filesScroll.setFillViewport(true);
+        filesScroll.addView(files);
+        LinearLayout.LayoutParams fileParams = new LinearLayout.LayoutParams(-1, 0, 1);
+        fileParams.topMargin = dp(12);
+        left.addView(filesScroll, fileParams);
+        files.addView(label("ARCHIVOS DEL JUEGO", 12, ACCENT, true));
+        status = label("Comprobando archivos…", 13, 0xFFCAD2DD, false);
+        status.setPadding(0, dp(6), 0, dp(8));
+        files.addView(status);
+        checks = new LinearLayout(this);
+        checks.setOrientation(LinearLayout.HORIZONTAL);
+        files.addView(checks);
+
+        play = action("JUGAR", true, this::play);
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(-1, dp(56));
+        playParams.topMargin = dp(12);
+        left.addView(play, playParams);
+        LinearLayout fileActions = new LinearLayout(this);
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
+        actionParams.topMargin = dp(10);
+        left.addView(fileActions, actionParams);
+        accessButton = action("Permitir acceso", false, this::permission);
+        fileActions.addView(accessButton, new LinearLayout.LayoutParams(0, -1, 1));
+        importButton = action("Importar mi copia", false, this::importGame);
+        LinearLayout.LayoutParams importParams = new LinearLayout.LayoutParams(0, -1, 1);
+        importParams.leftMargin = dp(8);
+        fileActions.addView(importButton, importParams);
+        TextView note = label("Memoria interna/NFSCARBON", 11, 0xFF96A1B1, false);
+        note.setPadding(dp(2), dp(6), 0, 0);
+        left.addView(note);
+
+        LinearLayout right = card();
+        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -1, 1);
+        rightParams.leftMargin = dp(22);
+        columns.addView(right, rightParams);
+        right.addView(label("AJUSTES DEL JUEGO", 12, ACCENT, true));
+        TextView nextSession = label("Se aplican al pulsar Jugar. Con antialiasing Original se usa 1280×720. Los FPS altos y Sin límite son experimentales.", 12, 0xFF96A1B1, false);
+        nextSession.setPadding(0, dp(3), 0, dp(5));
+        right.addView(nextSession);
+        ScrollView optionsScroll = new ScrollView(this);
+        optionsList = new LinearLayout(this);
+        optionsList.setOrientation(LinearLayout.VERTICAL);
+        optionsScroll.addView(optionsList);
+        right.addView(optionsScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        TextView languageNote = label("Los idiomas y las voces dependen de tu copia.", 11, 0xFF96A1B1, false);
+        languageNote.setPadding(0, dp(6), 0, dp(8));
+        right.addView(languageNote);
+        LinearLayout reports = new LinearLayout(this);
+        reports.addView(action("Enviar crash o log", false, this::report),
+                new LinearLayout.LayoutParams(0, dp(46), 1.5f));
+        LinearLayout.LayoutParams githubParams = new LinearLayout.LayoutParams(0, dp(46), 1);
+        githubParams.leftMargin = dp(8);
+        reports.addView(action("GitHub", false, () -> startActivity(new Intent(Intent.ACTION_VIEW,
+                Uri.parse(Diagnostics.ISSUES)))), githubParams);
+        right.addView(reports);
+        refreshOptions();
+        return columns;
+    }
+
+    private void importGame() {
+        if (busy) return;
+        if (!storageAllowed()) { permission(); return; }
+        new AlertDialog.Builder(this).setTitle("Importar Carbon")
+            .setMessage("Se copiarán los archivos a NFSCARBON. Necesitas unos 6 GB libres. "
+                    + "La copia existente quedará como respaldo y ocupará espacio adicional.")
+            .setPositiveButton("Elegir carpeta", (dialog, which) -> startActivityForResult(
+                new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), IMPORT))
+            .setNegativeButton("Cancelar", null).show();
+    }
+
+    @Override public void onResume() {
+        super.onResume();
+        refreshOptions();
+        refresh();
+    }
+
+    private LinearLayout card() {
+        LinearLayout view = new LinearLayout(this);
+        view.setOrientation(LinearLayout.VERTICAL);
+        view.setPadding(dp(16), dp(13), dp(16), dp(13));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xD9101823);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), 0x28FFFFFF);
+        view.setBackground(bg);
+        return view;
+    }
+
+    private TextView label(String message, int size, int color, boolean bold) {
+        TextView view = new TextView(this);
+        view.setText(message);
+        view.setTextSize(size);
+        view.setTextColor(color);
+        if (bold) view.setTypeface(Typeface.DEFAULT_BOLD);
+        return view;
+    }
+
+    private Button action(String title, boolean primary, Runnable action) {
+        Button view = new Button(this);
+        view.setText(title);
+        view.setAllCaps(false);
+        view.setTextColor(Color.WHITE);
+        view.setTextSize(primary ? 20 : 13);
+        view.setTypeface(Typeface.DEFAULT_BOLD);
+        view.setStateListAnimator(null);
+        GradientDrawable bg = primary
+            ? new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFFF6250, 0xFFD82B44})
+            : new GradientDrawable();
+        if (!primary) { bg.setColor(0x16FFFFFF); bg.setStroke(dp(1), 0x38FFFFFF); }
+        bg.setCornerRadius(dp(12));
+        view.setBackground(bg);
+        view.setOnClickListener(ignored -> action.run());
+        return view;
+    }
+
+    private void refreshOptions() {
+        if (optionsList == null) return;
+        optionsList.removeAllViews();
+        for (GameOptions.Option option : GameOptions.ALL) {
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0x12FFFFFF); bg.setCornerRadius(dp(10));
+            row.setBackground(bg);
+            row.addView(label(option.title, 13, Color.WHITE, false), new LinearLayout.LayoutParams(0, -2, 1));
+            TextView value = label(option.label(GameOptions.get(this, option.key)) + "  ›", 12, ACCENT, true);
+            value.setGravity(Gravity.END);
+            row.addView(value, new LinearLayout.LayoutParams(0, -2, 1.1f));
+            row.setOnClickListener(ignored -> chooseOption(option));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            params.topMargin = dp(6);
+            optionsList.addView(row, params);
         }
-        language.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                GameOptions.set(MainActivity.this, "language", GameOptions.LANGUAGE.values[position]);
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
-        });
-        content.addView(language);
-        content.addView(text("Los textos y las voces disponibles dependen de los idiomas incluidos en tu copia.", 13));
-        play = button(content, "Jugar", this::play);
-        button(content, "Permitir acceso a la carpeta del juego", this::permission);
-        importButton = button(content, "Importar mi copia de Xbox 360", () -> {
-            if (!storageAllowed()) { permission(); return; }
-            new AlertDialog.Builder(this).setTitle("Importar Carbon")
-                .setMessage("Se copiarán los archivos seleccionados a " + GAME_FOLDER_NAME
-                        + ". Necesitas unos 5 GB libres. La copia existente quedará como respaldo.")
-                .setPositiveButton("Elegir carpeta", (dialog, which) ->
-                    startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), IMPORT))
-                .setNegativeButton("Cancelar", null).show();
-        });
-        button(content, "Opciones", this::options);
-        button(content, "Enviar crash o log", this::report);
-        button(content, "Abrir issues en GitHub", () ->
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Diagnostics.ISSUES))));
-        content.addView(text("Primera prueba experimental. Los shaders se compilan durante el juego;"
-                + " las primeras cargas pueden tardar. No se incluyen archivos del juego en el APK.", 13));
-        setContentView(scroll);
     }
-    @Override public void onResume() { super.onResume(); refresh(); }
-    private TextView text(String message, int size) {
-        TextView view = new TextView(this); view.setText(message); view.setTextSize(size);
-        view.setTextColor(Color.WHITE); view.setPadding(0, dp(5), 0, dp(8)); return view;
+
+    private void chooseOption(GameOptions.Option option) {
+        int selected = 0;
+        for (int i = 0; i < option.values.length; i++)
+            if (option.values[i].equals(GameOptions.get(this, option.key))) selected = i;
+        new AlertDialog.Builder(this).setTitle(option.title)
+            .setSingleChoiceItems(option.labels, selected, (choice, value) -> {
+                GameOptions.set(this, option.key, option.values[value]);
+                refreshOptions(); choice.dismiss();
+            }).setNegativeButton("Cerrar", null).show();
     }
-    private Button button(LinearLayout parent, String title, Runnable action) {
-        Button view = new Button(this); view.setText(title); view.setAllCaps(false);
-        view.setOnClickListener(ignored -> action.run()); parent.addView(view); return view;
+
+    private void showChecks() {
+        checks.removeAllViews();
+        File root = gameRoot();
+        check("default.xex", new File(root, "default.xex").isFile());
+        check("NFS", new File(root, "NFS").isDirectory());
+        check("Movies", new File(root, "Movies").isDirectory() || new File(root, "MOVIES").isDirectory());
+    }
+
+    private void check(String name, boolean found) {
+        TextView row = label((found ? "✓ " : "✗ ") + name, 12,
+                found ? 0xFF85DDA6 : 0xFFFF8585, false);
+        row.setPadding(0, dp(3), 0, dp(3));
+        checks.addView(row, new LinearLayout.LayoutParams(0, -2, name.equals("default.xex") ? 2 : 1));
     }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private File gameRoot() { return new File(Environment.getExternalStorageDirectory(), GAME_FOLDER_NAME); }
@@ -124,9 +263,12 @@ public final class MainActivity extends Activity {
         if (status == null || busy) return;
         boolean ready = storageAllowed() && valid(gameRoot());
         play.setEnabled(ready);
-        status.setText(!storageAllowed() ? "Permite el acceso a la carpeta para cargar tu copia."
-                : ready ? "Archivos encontrados en " + gameRoot().getAbsolutePath()
-                : "Faltan default.xex, NFS o Movies en " + gameRoot().getAbsolutePath());
+        play.setAlpha(ready ? 1f : .45f);
+        accessButton.setVisibility(storageAllowed() ? View.GONE : View.VISIBLE);
+        showChecks();
+        status.setText(!storageAllowed() ? "Permite el acceso a tu copia."
+                : ready ? "Tu copia está lista para iniciar."
+                : "Importa tu copia extraída de Xbox 360.");
     }
     private void play() {
         if (busy || !storageAllowed() || !valid(gameRoot())) { refresh(); return; }
@@ -195,20 +337,6 @@ public final class MainActivity extends Activity {
                 }
             }
         }
-    }
-    private void options() {
-        String[] titles = new String[GameOptions.ALL.length];
-        for (int i = 0; i < titles.length; i++) {
-            GameOptions.Option option = GameOptions.ALL[i];
-            titles[i] = option.title + ": " + option.label(GameOptions.get(this, option.key));
-        }
-        new AlertDialog.Builder(this).setTitle("Opciones para la próxima sesión").setItems(titles, (dialog, index) -> {
-            GameOptions.Option option = GameOptions.ALL[index]; int selected = 0;
-            for (int i = 0; i < option.values.length; i++) if (option.values[i].equals(GameOptions.get(this, option.key))) selected = i;
-            new AlertDialog.Builder(this).setTitle(option.title).setSingleChoiceItems(option.labels, selected, (choice, value) -> {
-                GameOptions.set(this, option.key, option.values[value]); choice.dismiss();
-            }).setNegativeButton("Cerrar", null).show();
-        }).setNegativeButton("Cerrar", null).show();
     }
     private void report() {
         if (busy) return;
