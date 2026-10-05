@@ -448,6 +448,10 @@ void WindowSDL::RequestPaintImpl() {
   SDL_PushEvent(&event);
 }
 
+// The shared SDK (nfsmw-android) reconnects the presenter from the app lifecycle events through this call.
+// Carbon already detaches and recreates its Vulkan surface on minimize/restore in this file, so it keeps that.
+void WindowSDL::HandleAndroidLifecycle(bool) {}
+
 void WindowSDL::HandlePaintEvent() {
   paint_pending_.store(false, std::memory_order_release);
   OnPaint();

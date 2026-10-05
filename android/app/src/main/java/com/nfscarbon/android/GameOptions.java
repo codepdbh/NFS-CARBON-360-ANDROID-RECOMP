@@ -64,6 +64,9 @@ final class GameOptions {
         List<String> args = new ArrayList<>();
         args.add("--vulkan_native_shader_features=false");
         args.add("--render_target_path_vulkan=fbo");
+        // Classic render passes: on Adreno every vkCmdBeginRendering made the driver calloc (and later munmap)
+        // a large block; with dynamic rendering that was ~40 % of the GPU command thread (simpleperf, S25).
+        args.add("--vulkan_dynamic_rendering=false");
         args.add("--vulkan_require_geometry_shader=false");
         args.add("--vulkan_require_fill_mode_non_solid=false");
         args.add("--headless=true");
