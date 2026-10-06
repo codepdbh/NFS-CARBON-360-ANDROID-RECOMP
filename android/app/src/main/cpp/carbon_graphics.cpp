@@ -18,6 +18,11 @@
 
 REXCVAR_DEFINE_STRING(carbon_resolution, "1024x576", "Carbon/Android", "Scene and output resolution")
     .allowed({"640x360", "1024x576", "1280x720", "1600x900", "1920x1080"}).lifecycle(rex::cvar::Lifecycle::kInitOnly);
+// The text language apart from the console language: with an English console the game speaks and shows its
+// videos in English (the PAL English disc has no Spanish voices, NIS audio or videos) while the text follows this.
+// 0 = the console language (user_language).
+REXCVAR_DEFINE_INT32(carbon_text_language, 0, "Carbon/Android", "Xbox language of the game text (0 = user_language)")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_BOOL(carbon_single_pass, true, "Carbon/Android", "Use one scene tile without MSAA")
     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
 
@@ -171,7 +176,9 @@ REX_HOOK_RAW(sub_8231F5A8) {
   if (verified && !chose_language && ctx.r3.s32 == 0) {
     chose_language = true;
     uint32_t language = 0;
-    switch (REXCVAR_GET(user_language)) {
+    const int32_t text_language = REXCVAR_GET(carbon_text_language) ? REXCVAR_GET(carbon_text_language)
+                                                                       : int32_t(REXCVAR_GET(user_language));
+    switch (text_language) {
       case 5: language = 4; break; // Spanish
       case 4: language = 1; break; // French
       case 3: language = 2; break; // German
@@ -179,7 +186,8 @@ REX_HOOK_RAW(sub_8231F5A8) {
       default: break; // Unsupported resource sets keep retail English.
     }
     ctx.r3.u64 = language;
-    REXLOG_WARN("[carbon] Initial text language {} (Xbox language {})", language, REXCVAR_GET(user_language));
+    REXLOG_WARN("[carbon] Initial text language {} (Xbox language {}, console {})", language, text_language,
+                REXCVAR_GET(user_language));
   }
   __imp__sub_8231F5A8(ctx, base);
 }

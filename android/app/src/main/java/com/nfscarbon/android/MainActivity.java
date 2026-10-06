@@ -35,6 +35,7 @@ import java.security.MessageDigest;
 /** Standalone Carbon launcher. Game assets stay in the player's shared folder. */
 public final class MainActivity extends Activity {
     static final String GAME_FOLDER_NAME = "NFSCARBON";
+    private ShaderBuilder shaderBuilder;
     private static final int IMPORT = 10;
     private static final String EXPECTED_XEX = "b1e423914f5feb0871c8903aded4d86852d34be3b831b42f5c6473c7c7304221";
     private TextView status;
@@ -285,12 +286,50 @@ public final class MainActivity extends Activity {
                 if (!EXPECTED_XEX.equals(hash.toString())) throw new IOException(
                         "Esta edición de default.xex no coincide con la recompilada. Usa la copia Xbox 360 indicada en el README.");
                 runOnUiThread(() -> {
-                    busy = false; refresh(); Diagnostics.recordLaunch(this);
+                    busy = false;
+                    if ("nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key))
+                            && !ShaderBuilder.hasLibrary(shaderFolder())) {
+                        buildShaders();
+                        return;
+                    }
+                    refresh(); Diagnostics.recordLaunch(this);
                     startActivity(new Intent(this, GameActivity.class));
                 });
             } catch (Exception error) { failed(error); }
         }, "CarbonEditionCheck").start();
     }
+    // Where the native renderer looks first for its library: the executable folder (REX_APP_FOLDER in GameActivity).
+    private File shaderFolder() { return new File(getFilesDir(), "nfscarbon/user"); }
+
+    /** Builds nfscarbon_shaders.nfsp from the game files (a minute or two, only once), then starts the game. */
+    private void buildShaders() {
+        if (shaderBuilder != null) return;
+        busy = true; play.setEnabled(false); play.setAlpha(.45f);
+        status.setText("Generando los shaders del renderizador nativo (solo la primera vez)…");
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        shaderBuilder = new ShaderBuilder(this, gameRoot(), shaderFolder(), new ShaderBuilder.Listener() {
+            @Override public void onProgress(float fraction, String text) {
+                status.setText(Math.round(fraction * 100) + " % · " + text);
+            }
+            @Override public void onDone(File library) {
+                shadersFinished();
+                refresh(); Diagnostics.recordLaunch(MainActivity.this);
+                startActivity(new Intent(MainActivity.this, GameActivity.class));
+            }
+            @Override public void onError(String message) {
+                shadersFinished();
+                refresh();
+                status.setText("No se pudieron generar los shaders: " + message);
+            }
+        });
+        shaderBuilder.start();
+    }
+
+    private void shadersFinished() {
+        shaderBuilder = null; busy = false;
+        getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if (request != IMPORT || result != RESULT_OK || data == null || data.getData() == null) return;

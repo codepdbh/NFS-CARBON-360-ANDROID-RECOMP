@@ -20,7 +20,7 @@ final class GameOptions {
         }
     }
     // Xbox 360 language IDs, mapped to Carbon's startup resource IDs by its hook.
-    static final Option LANGUAGE = new Option("language", "Idioma del juego", "user_language", "1",
+    static final Option LANGUAGE = new Option("language", "Idioma del juego", "carbon_text_language", "1",
         new String[]{"1", "5", "4", "3", "6"},
         new String[]{"Inglés", "Español", "Français", "Deutsch", "Italiano"});
     // The native renderer of NFSMW Android Evolved (docs/renderizador-nativo.md) instead of Xenos emulation.
@@ -39,10 +39,14 @@ final class GameOptions {
         "nfsmw_nativo_cache_texturas_entre_fotogramas", "nfsmw_nativo_sin_desenfoque", "nfsmw_nativo_pcf_barato",
         "nfsmw_nativo_sombra_minimo", "nfsmw_nativo_saltar_invisibles", "nfsmw_nativo_resolver_contenido_valido",
     };
+    // Voices, race intros and videos: the console language. The PAL English disc only has them in English.
+    static final Option VOICES = new Option("voices", "Idioma de las voces", null, "english",
+        new String[]{"english", "text"}, new String[]{"Inglés · copias PAL inglesas", "Igual que los textos · copias dobladas"});
     static final Option[] ALL = {
         RENDERER,
         NATIVE_SHORTCUTS,
         LANGUAGE,
+        VOICES,
         new Option("resolution", "Resolución interna", "carbon_resolution", "1024x576",
             new String[]{"640x360", "1024x576", "1280x720", "1600x900", "1920x1080"},
             new String[]{"640×360 · rendimiento", "1024×576 · equilibrado", "1280×720 · calidad",
@@ -89,6 +93,7 @@ final class GameOptions {
         args.add("--vulkan_require_geometry_shader=false");
         args.add("--vulkan_require_fill_mode_non_solid=false");
         args.add("--headless=true");
+        args.add("--user_language=" + ("text".equals(get(context, VOICES.key)) ? get(context, LANGUAGE.key) : "1"));
         if ("nativo".equals(get(context, RENDERER.key))) {
             // Most Wanted's shortcuts that need its D3D layout: Carbon's VS objects keep several patched copies
             // (no IM_LOAD without memcmp) and its game-side vegetation filter reads MW's device mirror.

@@ -1,77 +1,118 @@
 # NFS CARBON 360 DECOMP
 
-Recompilación estática experimental de **Need for Speed Carbon para Xbox 360**,
-basada en ReXGlue. Traduce el código PowerPC de una copia del juego a C++ y lo
-compila para Windows x64 (Xenos / Direct3D 12) y Android ARM64 (Xenos / Vulkan).
-El nombre del proyecto no implica que se haya recuperado el código fuente original.
+**English** · [Español](README.es.md)
 
-**Estado al 2 de octubre de 2026:** el usuario confirmó las intros con imagen y
-sonido, el menú principal, la cinemática inicial de historia y que llega a conducir.
-Todavía falta validar carreras completas, progreso guardado y otros equipos.
-La primera versión Android está instalada en un Samsung S25 Ultra: el usuario
-confirmó imagen, recuperación al regresar de otra app, cinemática de historia
-y acceso a la conducción. Las carreras completas en Android requieren más pruebas.
+An experimental static recompilation of **Need for Speed Carbon for Xbox 360**, based on ReXGlue. It translates the
+PowerPC code of a copy of the game to C++ and builds it for Android ARM64 (Vulkan) and Windows x64 (Xenos / Direct3D
+12). The project's name does not mean that the original source code was recovered.
 
-El repositorio contiene el proyecto, los ajustes del analizador y las herramientas
-de diagnóstico. Los datos del juego, el ejecutable original, los volcados y el
-C++ generado se obtienen localmente de tu propia copia y no se distribuyen aquí.
+**Status on 6 October 2026:** on Android the game renders completely (cars, scenery, videos and menus) with the native
+renderer of [NFSMW Android Evolved](https://github.com/codepdbh/nfsmw-android), at about 60 FPS on a Samsung S25
+Ultra (Adreno 830) at 1280×720 and also at 1920×1080. There are still occasional hitches, and full races, saved
+progress and other phones still need testing.
 
-## Requisitos
+The repository holds the project, the analyser settings and the tools. The game data, the original executable, the
+dumps, the generated C++ and the shader library come from your own copy and are not distributed here.
 
-- Windows x64 y GPU compatible con Direct3D 12. Equipo probado: Radeon 780M.
-- Una copia extraída de **la edición Xbox 360** de Carbon, con `default.xex` y
-  sus carpetas originales, incluida `NFS`. Una copia de PC no sirve como entrada.
-- Visual Studio / Build Tools con las herramientas de C++ x64 y Windows SDK.
-- LLVM / Clang 20; versión probada: 20.1.8.
-- CMake y Ninja; CMake probado: 3.30.5.
-- Python 3 y `capstone` 5.0.7.
-- El SDK de la revisión indicada de [NFSMW Android Evolved](https://github.com/codepdbh/nfsmw-android),
-  utilizado como dependencia de compilación. Carbon mantiene sus correcciones
-  del analizador dentro de este proyecto.
+## The game copy
 
-La copia comprobada tiene estos identificadores:
+You need an extracted copy of **the Xbox 360 edition** of Carbon (a PC copy does not work), with `default.xex` and its
+original `NFS` and `Movies` folders. The tested copy is:
 
-| Campo | Valor |
+| Field | Value |
 | --- | --- |
 | Title ID | `454107EC` |
 | Media ID | `5E74E60D` |
-| Versión | `0.0.0.11` |
+| Version | `0.0.0.11` |
 | Entry point | `0x82943460` |
-| SHA-256 de `default.xex` | `b1e423914f5feb0871c8903aded4d86852d34be3b831b42f5c6473c7c7304221` |
+| `default.xex` SHA-256 | `b1e423914f5feb0871c8903aded4d86852d34be3b831b42f5c6473c7c7304221` |
 
-Los nombres de los videos indican PAL / inglés. Otras ediciones y regiones aún
-no se han probado; los complementos verifican los bytes originales antes de
-registrar sus funciones.
+It is the English PAL edition: its **text** is in English, Spanish, French, German and Italian, but its
+**voices, race intros and videos are only in English**. Other editions and regions have not been tested; the launcher
+refuses another `default.xex`, because the recompiled code and the hooks depend on it.
 
-## Preparación y compilación
+## Android
 
-Clona ambos proyectos en carpetas hermanas. Fija la dependencia a la revisión
-utilizada en esta prueba:
+An app separate from Most Wanted (package `com.nfscarbon.android`): full touch controls with a layout editor,
+Bluetooth controllers, manual log reports and a launcher with settings.
+
+**Requirements:** Android 8.0 or later, ARM64, Vulkan 1.1 or later and about 6 GB free for the game. Tested on an S25
+Ultra (Adreno 830). The native renderer is the one of Most Wanted, which already runs on Adreno, Mali (MediaTek /
+Dimensity, with its Mali occlusion query protection) and other Vulkan 1.1 GPUs; the Vulkan 1.1 path was also checked
+with Carbon. Carbon itself has not been tried on those phones yet: if you do, please send the log.
+
+1. Install the APK.
+2. Copy your Xbox 360 copy to **Internal storage/NFSCARBON** (with `default.xex`, `NFS` and `Movies` directly inside),
+   or use **Importar mi copia**. Importing makes a new copy and keeps the previous one as a backup, so it needs extra
+   space.
+3. Open the launcher, tap **Permitir acceso** and grant access to files.
+4. Choose your settings and tap **Jugar**. The first time, the app builds the native renderer's shaders from your
+   files (a few seconds; it only happens again if their version changes).
+
+The APK contains neither the game nor anything derived from it.
+
+### Launcher settings
+
+- **Renderizador:** *Nativo* (default) draws with Vulkan directly, with Most Wanted's renderer adapted to Carbon;
+  *Xenos* emulates the Xbox 360 GPU (more compatible in principle, much slower).
+- **Atajos del renderizador (MW):** optimisations measured in Most Wanted, off by default until they are validated in
+  Carbon.
+- **Idioma del juego:** language of the text.
+- **Idioma de las voces:** *Inglés* (default, what the English PAL copy has) or *Igual que los textos*, for dubbed
+  copies. With a copy that has no voices in your language, *Igual que los textos* leaves the race intro audio
+  incomplete.
+- **Resolución interna:** from 640×360 to 1920×1080. Above 720p only with the native renderer (Xenos stays at
+  1280×720, because the scene has to fit in the emulated EDRAM).
+- **Ritmo objetivo:** 30, 60, 90, 120 or unlimited (the high ones are experimental).
+- **Scene antialiasing**, **vertical sync**, **shader compilation and workers** (Xenos), **game CPU** (prefer fast
+  cores), **FPS counter** and **logs**.
+
+With the native renderer the session log is in `Android/data/com.nfscarbon.android/files/logs`. For testing, every line
+starting with `--` in `Android/data/com.nfscarbon.android/files/args.txt` is added to the game's arguments (for
+example `--nfsmw_nativo_simular_vulkan11=true`).
+
+### Native renderer
+
+It is built from `nfsmw-android/app/src` with `NFSC_RECOMP` and Carbon's hooks (`src/carbon_nativo_ganchos.cpp`).
+[docs/renderizador-nativo.md](docs/renderizador-nativo.md) (Spanish) lists the Direct3D functions and offsets found in
+Carbon, what had to be added to the renderer (7e3 render targets, rectangle lists, identifying the vertex shaders that
+Carbon's D3D reorders) and what is still pending.
+
+The shader library is built on the phone (`assets/shaders/build.js`, in a WebView): it finds the game's 2008 shader
+containers, adds the three vertex shaders of D3D itself (loose microcode in the xex), translates them with XenosRecomp
+and DXC compiled to WebAssembly, and checks the SHA-256 expected for your executable. On a PC,
+`tools/biblioteca_shaders_carbon.mjs` does the same and gives the same library, byte for byte.
+
+## Building
+
+Clone both projects side by side and pin the dependency to the tested revision:
 
 ```powershell
 git clone https://github.com/codepdbh/NFS-CARBON-360-DECOMP.git
 git clone https://github.com/codepdbh/nfsmw-android.git
-git -C nfsmw-android checkout 5f581c684af5e357a640d3344dc829ba56c8bc79
+git -C nfsmw-android checkout c2cd03742c24a76d0c349512a09d1244fe6e456d
 python nfsmw-android/tools/fetch_thirdparty.py
 python -m pip install -r NFS-CARBON-360-DECOMP/requirements.txt
 ```
 
-Coloca tu copia extraída en una carpeta hermana llamada `Need_for_Speed_Carbon`:
+Put your extracted copy in a sibling folder called `Need_for_Speed_Carbon`:
 
 ```text
-carpeta-de-trabajo/
+work-folder/
   NFS-CARBON-360-DECOMP/
   nfsmw-android/
-    sdk/
   Need_for_Speed_Carbon/
     default.xex
     NFS/
-    ...resto de los archivos originales...
+    Movies/
 ```
 
-Desde el repositorio de Carbon, indica dónde están LLVM, CMake y Ninja. CMake y
-Ninja deben estar en la misma carpeta para este script. Sustituye los ejemplos
-por tus rutas reales:
+Tools: Visual Studio / Build Tools with C++ x64 and the Windows SDK, LLVM / Clang 20 (tested 20.1.8), CMake 3.30.5 and
+Ninja, Python 3 with `capstone` 5.0.7. For Android also JDK 17+, the Android SDK with API 35 and NDK `28.2.13676358`.
+
+### Code generation (PC)
+
+From the Carbon repository, say where LLVM, CMake and Ninja are (CMake and Ninja in the same folder):
 
 ```powershell
 cd NFS-CARBON-360-DECOMP
@@ -83,232 +124,66 @@ $carbonBuildOptions = @{
 .\build_pc.ps1 @carbonBuildOptions
 ```
 
-El script genera el código, repara los saltos locales comprobables y construye
-`out/pc/nfscarbon.exe`. Las dependencias del SDK se preparan con el script anterior;
-la primera compilación puede tardar varios minutos. Los valores por defecto reutilizan las herramientas
-de la instalación local de NFSMW y del Android SDK del desarrollador; las opciones
-anteriores permiten usar otras ubicaciones.
-
-Para completar la recuperación de las funciones pequeñas usada en esta prueba,
-inicia una primera sesión con el volcado local habilitado:
+It generates the code, repairs the local branches that can be checked and builds `out/pc/nfscarbon.exe`. To finish
+recovering the small functions, start a session with the local dump, close it when the logos appear and build again:
 
 ```powershell
 .\run_pc.ps1 -DumpImage
-```
-
-Cuando aparezcan los logos, cierra el juego y vuelve a compilar. El script detecta
-el volcado, genera las entradas pequeñas, las verifica con Capstone y las incluye
-en el ejecutable:
-
-```powershell
 .\build_pc.ps1 @carbonBuildOptions
 .\build_pc.ps1 -EntryChecks @carbonBuildOptions
 .\run_pc.ps1
 ```
 
-El volcado queda en `out/runtime/cache/carbon-82000000.bin` y está excluido de Git.
-También están excluidos los perfiles y registros de `out/runtime/`.
+The dump is written to `out/runtime/cache/carbon-82000000.bin` and is ignored by Git, like the logs in `out/runtime/`.
 
-## Android experimental
+### APK
 
-La app es independiente de Most Wanted: paquete `com.nfscarbon.android`, con
-Vulkan / Xenos, mando táctil completo, ajustes de posición e inclinación y envío
-manual de registros por correo o GitHub. Incluye el icono suministrado por el
-autor y un selector de idioma antes de Jugar. Usa los mismos archivos Xbox 360 que la
-prueba de PC. La carpeta del teléfono es **Memoria interna/NFSCARBON**, con
-`default.xex`, `NFS` y `Movies` directamente dentro.
-
-Para instalar esta prueba necesitas Android 8.0 o superior, un sistema ARM64,
-controlador Vulkan compatible y unos 6 GB libres para los datos del juego.
-Por ahora solo se ha probado en el S25 Ultra / Adreno 830; poder instalar el APK
-no garantiza que cualquier GPU pueda ejecutar el renderizador.
-
-1. Instala el APK y permite la instalación desde esa fuente si Android lo pide.
-2. Copia tu edición Xbox 360 comprobada a `Memoria interna/NFSCARBON`, o usa
-   **Importar mi copia**. La importación crea una copia nueva y
-   conserva como respaldo una carpeta anterior: requiere espacio adicional.
-3. Abre el launcher, pulsa **Permitir acceso** y concede
-   el permiso de acceso a archivos. Vuelve al launcher.
-4. Selecciona **Idioma del juego** y pulsa **Jugar**. La elección queda guardada
-   y se aplica al siguiente arranque. Carbon carga sus recursos de texto en inglés,
-   español, francés, alemán o italiano. No se descargan traducciones ni doblajes.
-   Si falta un video del idioma elegido, se usa el video inglés que ya contiene
-   esta copia, mediante un alias virtual que no duplica archivos.
-5. Usa **Start** y **A** para avanzar por las pantallas. Los controles pueden
-   ajustarse desde el botón de configuración durante el juego.
-
-El APK no incluye el juego. Se exige el SHA-256 indicado arriba; una edición
-regional diferente necesita su propia generación y validación.
-
-Para compilar necesitas además JDK 17 o superior, Android SDK con API 35,
-NDK `28.2.13676358` y CMake `3.30.5`. Primero completa la generación de código y
-la recuperación local descritas en la sección de PC; el compilador Android usa
-esos archivos locales. El SDK de ReXGlue sigue siendo la dependencia hermana.
+With the code generation and the local recovery done:
 
 ```powershell
 .\build_android.ps1
 ```
 
-El APK de prueba queda en `android/app/build/outputs/apk/release/app-release.apk`.
-Se firma con la clave de depuración local; no es una firma estable para versiones
-públicas. Los guardados de Carbon se almacenan dentro de su propia aplicación.
-El launcher verifica el SHA-256 de `default.xex` para evitar usar código
-recompilado con otra edición. Permite el acceso a la carpeta del juego antes de
-pulsar Jugar; también puedes importar una copia desde el selector de carpetas.
+The APK is `android/app/build/outputs/apk/release/app-release.apk`, signed with the local debug key (not a stable
+signature for public releases). The `assets/shaders/wasm/hlsl.*` and `pack.*` modules are built with Emscripten from
+`nfsmw-android/shaders` (see `assets/shaders/NOTICES.md`).
 
-La entrada SDL de Android selecciona `nfscarbon` mediante un archivo local;
-no modifica el arranque de Most Wanted en el SDK compartido. La ventana Android
-desconecta la superficie Vulkan al minimizarse y la crea de nuevo al regresar.
-La tabla de imagen registra las mismas 73.177 parejas dirección/función que el
-ayudante generado omitido de la compilación móvil, comprobadas por
-`tools/verify_registration_maps.py` antes de compilar.
+### PC
 
-El launcher usa dos columnas y tarjetas como Most Wanted, con los colores de
-Carbon. Jugar e Importar quedan visibles mientras la lista de ajustes se desplaza.
-La versión 0.2.0 añade estas opciones de rendimiento:
+The PC build uses Xenos on Direct3D 12 and is meant for testing. Controls:
 
-- **Resolución interna:** 640×360, 1024×576 o 1280×720. El modo sin antialiasing
-  configura el renderizado y la salida del juego, con una sola tesela. Con
-  antialiasing Original se restaura el modo original a 1280×720.
-- **Ritmo objetivo:** 30, 60, 90, 120 o Sin límite. Ajusta el vblank virtual que
-  cuenta el juego y solicita un modo compatible al panel. Sin límite desactiva
-  VSync y usa un vblank virtual de 240 Hz; no es una garantía de FPS ni elimina
-  necesariamente todos los límites del motor. Los modos altos son experimentales.
-- **Compilación de shaders:** en segundo plano por defecto. Vulkan conserva
-  la última imagen completa mientras termina los pipelines pendientes, para
-  evitar dibujar fotogramas incompletos. Si aparecen problemas, prueba Completa.
-- **Trabajadores de shaders:** 2 por defecto, en lugar de ocupar automáticamente
-  tres cuartas partes de los núcleos del dispositivo. Se puede elegir 1, 2, 4 o
-  Automático para comparar.
-- **CPU del juego:** puede preferir núcleos rápidos según la capacidad que
-  expone el kernel; si no está disponible, usa la frecuencia máxima como
-  alternativa. La capacidad contempla diferencias de arquitectura y frecuencia
-  ([documentación del kernel](https://docs.kernel.org/scheduler/sched-capacity.html)).
-  Conserva la máscara permitida por Android y no
-  cambia nada si los núcleos son equivalentes, no se leen los datos o
-  quedarían menos de dos núcleos. No modifica los hilos de la interfaz Android.
-- **Registros:** Solo avisos y errores evita escribir la actividad normal de
-  cada sesión. Detallados + tiempos añade `carbon-frames.csv` al informe de esa
-  sesión, para comparar tiempos y pausas sin instrumentar todas las llamadas PPC.
-- **Contador de FPS:** muestra la cadencia del último fotograma solicitado por
-  el juego, medida en los swaps del motor. No mide el refresco de la pantalla
-  ni cuenta cuántas imágenes nuevas mostró el compositor.
-
-El launcher se comprobó en Android 16, tanto en un dispositivo virtual como en
-un Samsung S25 Ultra: ajustes persistentes, selección de idioma, permisos,
-estructura de archivos y rechazo de un XEX incorrecto. En el teléfono se verificó
-el texto español y la conducción. Las primeras pruebas de conducción registraron
-7–10 FPS incluso a 1024×576, por lo que bajar la resolución por sí solo no resuelve
-el rendimiento.
-
-El perfil de CPU detectó una espera activa del D3D de Carbon y un bucle de eventos
-de SDL en Android. La espera ahora recibe avisos de progreso de la GPU, con un
-plazo de 500 µs antes de volver a las comprobaciones originales; el bucle de SDL
-ya no se despierta por sus propios eventos centinela. Ambos hilos dejaron de
-ocupar continuamente un núcleo, aunque esa prueba todavía produjo 7–10 FPS.
-También se incorporan las llamadas directas y ThinLTO usadas por Most Wanted,
-preservando los complementos y tablas de despacho, y una lectura del mapa de
-memoria sin asignaciones por línea. Carbon sigue utilizando Xenos del SDK;
-el renderizador Vulkan propio de Most Wanted requiere adaptación específica.
-
-El APK final con llamadas directas, ThinLTO y la consulta de memoria acelerada
-compiló y se instaló en el S25. Las pruebas se detuvieron a petición del usuario
-antes de recibir una medición de conducción de esa última versión; su mejora de
-FPS queda pendiente de comprobación. No se publica una cifra de mejora.
-
-La compilación permite perfiles locales mediante `simpleperf` por ADB
-([documentación de Android](https://developer.android.com/guide/topics/manifest/profileable-element)).
-`tests/gpu_wait_checks.cpp` comprueba avisos anteriores al registro, tiempos de
-espera y varios consumidores. `tests/proc_maps_checks.cpp` comprueba límites de
-lectura, rutas largas, huecos y cambios reales de `mprotect`; ambas pruebas se
-ejecutaron en ARM64 en el S25. `tests/android_direct_calls_checks.py` comprueba
-que la optimización conserva los complementos, entradas no resueltas y tablas.
-
-## Controles de PC
-
-| Tecla | Acción del mando |
+| Key | Controller |
 | --- | --- |
 | Enter | Start |
-| Espacio | A / aceptar |
-| Backspace | B / volver |
-| WASD | Joystick izquierdo |
-| E / O | Gatillo derecho |
-| Q / I | Gatillo izquierdo |
+| Space | A / accept |
+| Backspace | B / back |
+| WASD | Left stick |
+| E / O | Right trigger |
+| Q / I | Left trigger |
 | L | X |
 | P | Y |
 
-Los mandos usan el backend SDL. La compatibilidad de cada mando sigue pendiente.
+## Analysis fixes
 
-## Correcciones y validación
+- `src/codegen/phase_gapfill.cpp`: splits the functions that end in an unconditional indirect branch; the last
+  generation found 72,822 entries.
+- `tools/fix_local_branches.py`: fixes the local branches whose target already has a label in the same function.
+- `src/carbon_missing_entries.cpp` and `tools/recover_small_entries.py` / `verify_small_entries.py`: missing entries,
+  checked against the original bytes and Capstone.
+- `tests/`: checks of story entries, the GPU wait, the memory map reader and the Android direct calls.
 
-- `src/codegen/phase_gapfill.cpp`: separa las funciones que terminan en un salto
-  indirecto incondicional y acelera la limpieza de rangos. La última generación
-  identificó 72.822 entradas.
-- `tools/fix_local_branches.py`: conserva la condición del salto y reemplaza el
-  marcador de error únicamente cuando el destino ya tiene una etiqueta en la
-  misma función. Corrigió 216 saltos; quedan 8 marcadores sin resolver.
-- `src/carbon_missing_entries.cpp`: traducciones adicionales que comprueban la
-  secuencia original antes de registrarse y se omiten si el generador ya las cubre.
-- `tools/recover_small_entries.py` y `tools/verify_small_entries.py`: recuperan
-  secuencias acotadas de dos instrucciones y de tres instrucciones
-  (`li/lis; stw; b` a una entrada existente). Verifican los registros, inmediatos
-  y destinos contra Capstone. Pasaron las 35.084 entradas recuperadas de esta copia,
-  incluidas 54 inicializaciones de campo seguidas de salto. Una de ellas cubre
-  el cierre posterior a la cinemática en `0x82287360`.
-- `tests/story_entry_checks.cpp`: pasaron 40 casos de recursos, estados y entrega
-  de argumentos, incluyendo las escrituras de memoria y registros conservados.
+## Diagnostics and reports
 
-La entrada a historia y el acceso a la conducción están confirmados por la prueba
-del usuario. En una sesión previa se registraron advertencias de texturas y un cierre del
-controlador D3D12 (`DEVICE_HUNG`, `0x887A0006`). La estabilidad gráfica sigue
-pendiente de corrección. Estas comprobaciones no validan todas las rutas del juego.
+On Android, **Enviar crash o log** prepares a ZIP with the app's logs and the device diagnostics; nothing is sent on
+its own. You can also open an [issue](https://github.com/codepdbh/NFS-CARBON-360-DECOMP/issues) with your phone, GPU
+and the steps. Do not attach game data or dumps of the executable.
 
-## Diagnóstico y reportes
+On PC the log is `out/runtime/carbon.log`; `.\run_pc.ps1 -GpuDiagnostics` turns on the D3D12 debug layer and DRED, and
+`python tools/inspect_image.py 0x824DAAA0` inspects an address with the local dump.
 
-Abre un [issue](https://github.com/codepdbh/NFS-CARBON-360-DECOMP/issues) indicando
-CPU, GPU, controlador, versión de Windows, edición del juego y pasos para reproducir
-el fallo. El registro está en `out/runtime/carbon.log`; revisa su contenido antes
-de adjuntarlo. No adjuntes datos del juego ni volcados del ejecutable.
+## Credits
 
-En Android, **Enviar crash o log** prepara un ZIP con los registros de la propia
-app y el diagnóstico del dispositivo, y abre el selector para enviarlo a
-`daniebatuani@gmail.com`. **Abrir issues en GitHub** abre el formulario del
-repositorio; adjunta allí el informe si lo necesitas. No se envía nada automáticamente.
-
-Para investigar una dirección del registro usando el volcado local:
-
-```powershell
-python tools/inspect_image.py 0x824DAAA0
-```
-
-Para investigar un bloqueo de la GPU, el launcher tiene un modo de diagnóstico:
-
-```powershell
-.\run_pc.ps1 -GpuDiagnostics
-```
-
-Activa la capa de depuración de D3D12, DRED y marcadores gráficos. El registro de
-esa sesión se guarda por separado en `out/runtime/carbon-gpu-*.log`; su ruta queda
-en `out/runtime/current-log.txt`. Si falta la capa de depuración, el SDK lo avisa
-en el registro. Este modo sirve para diagnóstico y puede reducir el rendimiento.
-
-También se pueden comparar las implementaciones del renderizado del SDK, cerrando
-la sesión anterior antes de iniciar otra:
-
-```powershell
-.\run_pc.ps1 -GpuDiagnostics -RenderTargetPath rtv
-.\run_pc.ps1 -GpuDiagnostics -RenderTargetPath rov
-```
-
-Son opciones de prueba; su resultado en las carreras de Carbon aún no está validado.
-
-## Créditos
-
-Basado en ReXGlue SDK, con código derivado de Xenia, y en la dependencia local de
-NFSMW Android Evolved. La copia modificada de `phase_gapfill.cpp` conserva la
-atribución de Tom Clay y la licencia BSD de tres cláusulas en `LICENSE`.
-Los controles, el ciclo de vida SDL y los ayudantes de informes de Android están
-adaptados de `codepdbh/nfsmw-android` en `5f581c6`, bajo GPL-3.0, conservada en
-`android/LICENSE`. Consulta también `android/NOTICE.md`.
-Need for Speed Carbon pertenece a sus titulares originales. Proyecto comunitario
-independiente.
+Based on the ReXGlue SDK, with code derived from Xenia, and on NFSMW Android Evolved (its SDK, its native renderer, the
+controls, the SDL lifecycle and the report helpers, under GPL-3.0, kept in `android/LICENSE`; see also
+`android/NOTICE.md`). The modified copy of `phase_gapfill.cpp` keeps Tom Clay's attribution and the three-clause BSD
+license in `LICENSE`. Need for Speed Carbon belongs to its owners. An independent community project.

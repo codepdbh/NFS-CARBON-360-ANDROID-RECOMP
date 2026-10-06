@@ -8,7 +8,9 @@
 #include <rex/logging.h>
 #include <fstream>
 #include "carbon_missing_entries.h"
+#if REX_PLATFORM_ANDROID
 #include "nfsmw_nativo_sistema.h"
+#endif
 
 REXCVAR_DECLARE(bool, carbon_dump_image);
 #ifdef CARBON_RECOVERED_THUNKS
@@ -35,9 +37,11 @@ class NfscarbonApp : public rex::ReXApp {
     config.gpu_plugin = "xenos";
     // nfsmw_renderizador = "nativo": the native renderer of NFSMW Android Evolved (docs/renderizador-nativo.md)
     // replaces the Xenos emulation; ReXApp only loads the plugin when config.graphics is empty.
+#if REX_PLATFORM_ANDROID
     if (nfsmw::nativo::Activo()) {
       config.graphics = nfsmw::nativo::CrearSistemaGrafico();
     }
+#endif
 #if REX_PLATFORM_ANDROID
     CarbonConfigureAndroidCpu();
 #endif
