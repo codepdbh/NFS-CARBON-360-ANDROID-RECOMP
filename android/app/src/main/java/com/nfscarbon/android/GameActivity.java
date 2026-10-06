@@ -227,6 +227,20 @@ public final class GameActivity extends SDLActivity
         args.add("--log_file=" + new File(logs, "carbon.log").getAbsolutePath());
         // The launcher's graphics options win over nfscarbon.toml.
         args.addAll(GameOptions.arguments(this));
+        // Testing: one extra argument per line in Android/data/com.nfscarbon.android/files/args.txt (written over
+        // USB; the app never creates it).
+        if (external != null) {
+            File extra = new File(external, "args.txt");
+            if (extra.isFile()) {
+                try {
+                    for (String line : java.nio.file.Files.readAllLines(extra.toPath())) {
+                        line = line.trim();
+                        if (line.startsWith("--")) args.add(line);
+                    }
+                } catch (java.io.IOException ignored) {
+                }
+            }
+        }
         if (getSharedPreferences("nfscarbon_controls", MODE_PRIVATE).getBoolean("stretch", true)) {
             args.add("--present_letterbox=false");
             args.add("--present_safe_area_x=100");
