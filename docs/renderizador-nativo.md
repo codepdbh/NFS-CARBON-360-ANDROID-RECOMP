@@ -78,24 +78,26 @@ El renderizador se compila desde `nfsmw-android/app/src` con `NFSC_RECOMP` (ver 
 de Carbon están en `src/carbon_nativo_ganchos.cpp` y la espera del anillo (`826DEFD0`) usa el progreso del hilo
 del anillo nativo. Se elige con la opción "Renderizador" del lanzador (`nfsmw_renderizador`).
 
-## Estado (6 de octubre de 2026)
+## Estado (6 de octubre de 2026, tarde)
 
-Arranca con el renderizador nativo, ~60 FPS en menú y carrera (S25), 0 dibujos rechazados. Hecho en el
-renderizador compartido (`nfsmw-android/app/src`, bajo `NFSC_RECOMP` donde es propio de Carbon):
+Imagen completa (coches, escenario, vídeos, menús) con el renderizador nativo, ~60 FPS en 720p y también a
+1920x1080 en un S25 (GPU ~8 ms por fotograma a 720p). Lo que lo hizo posible, en el renderizador compartido
+(`nfsmw-android` `c2cd037`):
 
-- Destinos de color 2_10_10_10_FLOAT (7e3) y su alias 16_16_16_16 en RGBA16F; copias entre formatos con blit;
-  borrado 7e3 decodificado.
-- Los otros seis `Draw*` de Carbon (`826DE280`, `826DE700`, `826F6A88`, `82706068`, `826DCB30`, `826DCD68`)
-  dejan registros `kCualquiera` (solo los shaders).
-- Identificación de VS cargados: el D3D de Carbon reescribe el swizzle de destino de cada fetch y reordena
-  los fetch; se comparan como conjunto (42 de 45 identificados; los 3 restantes son internos del D3D).
+- Destinos de color 2_10_10_10_FLOAT (7e3) en RGBA16F; la vista "AS_16_16_16_16" comparte imagen con la
+  normal (Carbon dibuja la escena en las dos: separadas, los coches salían transparentes).
+- Listas de rectángulos (el cuarto vértice se construye en la CPU).
+- Identificación de los VS cargados tolerante al reordenado y al swizzle que hace el D3D de Carbon.
+- Los otros seis `Draw*` dejan registros `kCualquiera`.
+
+Y aquí: la biblioteca incluye los tres vertex shaders propios del D3D (microcódigo suelto en el xex, en
+`0x8204E878`, `0x8204E7E8` y `0x8204CE28`), envueltos en contenedores 2008; resoluciones 1600x900 y 1920x1080
+con el renderizador nativo; contador de FPS a partir de los Swaps nativos.
 
 ## Pendiente
 
-- Imagen oscura y transparencias rotas en carrera.
-- Los vídeos se quedan en negro.
-- Contador de FPS del lanzador (lee contadores de Xenos).
-- ~25 % de dibujos siguen sin registro de `Draw*`.
+- Tirones: ~16 % de los fotogramas a 30-36 ms con la GPU sobrada (CPU del juego o hilo del anillo).
+- Las listas de puntos del D3D (tipo 1, un vértice) se rechazan; no dibujan nada visible.
+- Generar la biblioteca en el teléfono (módulos WebAssembly con `NFSC_RECOMP` y los shaders del D3D).
 - `Swap` (candidato `826E27A8`, similitud 0,59) y `Issue` de las consultas (candidato `826EDF38`).
-- Generar la biblioteca en el teléfono (módulos WebAssembly con `NFSC_RECOMP`).
 - Depurar la imagen pase a pase y las optimizaciones propias de Carbon.

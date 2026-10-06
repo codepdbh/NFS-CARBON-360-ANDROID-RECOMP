@@ -17,7 +17,7 @@
 #include "nfsmw_nativo_sistema.h"
 
 REXCVAR_DEFINE_STRING(carbon_resolution, "1024x576", "Carbon/Android", "Scene and output resolution")
-    .allowed({"640x360", "1024x576", "1280x720"}).lifecycle(rex::cvar::Lifecycle::kInitOnly);
+    .allowed({"640x360", "1024x576", "1280x720", "1600x900", "1920x1080"}).lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_BOOL(carbon_single_pass, true, "Carbon/Android", "Use one scene tile without MSAA")
     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
 
@@ -30,6 +30,9 @@ std::pair<uint32_t, uint32_t> Size() {
   const auto& size = REXCVAR_GET(carbon_resolution);
   if (size == "640x360") return {640, 360};
   if (size == "1024x576") return {1024, 576};
+  // Above 720p only with the native renderer, which has no EDRAM to fit in.
+  if (size == "1600x900") return {1600, 900};
+  if (size == "1920x1080") return {1920, 1080};
   return {1280, 720};
 }
 void OutputSize(uint8_t* base) {

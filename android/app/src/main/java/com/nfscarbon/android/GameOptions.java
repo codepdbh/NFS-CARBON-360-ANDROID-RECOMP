@@ -27,12 +27,26 @@ final class GameOptions {
     static final Option RENDERER = new Option("renderer", "Renderizador", "nfsmw_renderizador", "nativo",
         new String[]{"nativo", "xenos"},
         new String[]{"Nativo · experimental, más rápido", "Xenos · emulación"});
+    // Most Wanted's measured shortcuts in the native renderer, still to be validated in Carbon.
+    static final Option NATIVE_SHORTCUTS = new Option("native_shortcuts", "Atajos del renderizador (MW)", null,
+        "off", new String[]{"off", "on"}, new String[]{"Desactivados · más fiel", "Activados · experimental"});
+    static final String[] MW_SHORTCUT_CVARS = {
+        "nfsmw_sombras_sin_vegetacion", "nfsmw_nativo_dedupe_vertices", "nfsmw_nativo_resolver_sin_copia",
+        "nfsmw_nativo_intercambiar_sin_borrado", "nfsmw_nativo_saltar_borrados_repetidos",
+        "nfsmw_nativo_z_temprana", "nfsmw_nativo_cielo_aplazado", "nfsmw_nativo_sin_ps_sin_color",
+        "nfsmw_nativo_ps_solo_alfa", "nfsmw_nativo_frontal_perezoso", "nfsmw_nativo_profundidad_perezosa",
+        "nfsmw_nativo_pase_area_util", "nfsmw_nativo_restaurar_area_util",
+        "nfsmw_nativo_cache_texturas_entre_fotogramas", "nfsmw_nativo_sin_desenfoque", "nfsmw_nativo_pcf_barato",
+        "nfsmw_nativo_sombra_minimo", "nfsmw_nativo_saltar_invisibles", "nfsmw_nativo_resolver_contenido_valido",
+    };
     static final Option[] ALL = {
         RENDERER,
+        NATIVE_SHORTCUTS,
         LANGUAGE,
         new Option("resolution", "Resolución interna", "carbon_resolution", "1024x576",
-            new String[]{"640x360", "1024x576", "1280x720"},
-            new String[]{"640×360 · rendimiento", "1024×576 · equilibrado", "1280×720 · calidad"}),
+            new String[]{"640x360", "1024x576", "1280x720", "1600x900", "1920x1080"},
+            new String[]{"640×360 · rendimiento", "1024×576 · equilibrado", "1280×720 · calidad",
+                "1600×900 · solo renderizador nativo", "1920×1080 · solo renderizador nativo"}),
         new Option("fps", "Ritmo objetivo (FPS)", null, "60",
             new String[]{"30", "60", "90", "120", "unlimited"},
             new String[]{"30 FPS", "60 FPS", "90 FPS · experimental", "120 FPS · experimental", "Sin límite · experimental"}),
@@ -81,8 +95,15 @@ final class GameOptions {
             args.add("--nfsmw_nativo_im_load_sin_memcmp=false");
             args.add("--nfsmw_d3d_vegetacion_juego=false");
             args.add("--nfsmw_nativo_sombra_d3d=false");
+            if (!"on".equals(get(context, NATIVE_SHORTCUTS.key))) {
+                for (String cvar : MW_SHORTCUT_CVARS) args.add("--" + cvar + "=false");
+            }
         }
         String size = "true".equals(get(context, "single_pass")) ? get(context, "resolution") : "1280x720";
+        // Xenos keeps the scene in the 10 MB of emulated EDRAM: 720p at most.
+        if (!"nativo".equals(get(context, RENDERER.key)) && (size.equals("1600x900") || size.equals("1920x1080"))) {
+            size = "1280x720";
+        }
         String[] dimensions = size.split("x");
         args.add("--resolution=");
         args.add("--video_mode_width=" + dimensions[0]);
@@ -98,7 +119,7 @@ final class GameOptions {
         args.add("--log_level=" + (detailed || nativeRenderer ? "info" : "warn"));
         args.add("--carbon_perf_csv=" + detailed);
         for (Option option : ALL) if (option.cvar != null) {
-            String value = get(context, option.key);
+            String value = "resolution".equals(option.key) ? size : get(context, option.key);
             if ("vsync".equals(option.key) && "unlimited".equals(fps)) value = "false";
             args.add("--" + option.cvar + "=" + value);
         }

@@ -86,6 +86,70 @@ const before = found.length;
 scan(image, 'default.xex', found);
 console.log(`default.xex: ${found.length - before} contenedores (imagen ${image.length} bytes)`);
 
+// Direct3D's own vertex shaders: raw microcode in the xex (no container), loaded by D3D itself for its rectangle
+// fills and point draws, with the game's colour pixel shader (COLOR0 in register 0). They are wrapped in a 2008
+// container: a 256-register float4 array (g_C), the vertex elements of their fetches and COLOR0 as the only
+// interpolator. Addresses: Carbon PAL English (docs/renderizador-nativo.md).
+const IMAGEN_BASE = 0x82000000;
+const D3D_INTERNOS = [
+  { direccion: 0x8204e878, palabras: 24, primera: 0x00001003, elementos: [] },
+  // instruction, usage (0 position, 10 colour), index
+  { direccion: 0x8204e7e8, palabras: 27, primera: 0x30052003, elementos: [[3, 0, 0], [4, 10, 0]] },
+  { direccion: 0x8204ce28, palabras: 15, primera: 0x10011002, elementos: [[2, 0, 0]] },
+];
+function contenedorInterno({ direccion, palabras, elementos }) {
+  const o = direccion - IMAGEN_BASE;
+  const micro = image.slice(o, o + palabras * 4);
+  const w = [];  // virtual part, big-endian words
+  const put = (i, v) => { w[i] = v >>> 0; };
+  // Header (36 bytes = 9 words), then the constant table at 36.
+  const ct = 36;
+  // Table words, relative to ct + 4: size, creator, version, constants, info, flags, target (28 bytes),
+  // info (20), type (16), strings.
+  const tabla = [];
+  const info = 28, tipo = 48, nombre = 64, creador = 68, objetivo = 72;
+  tabla.push(80, creador, 0xfffe0300, 1, info, 0, objetivo);
+  tabla.push(nombre, (2 << 16) | 0, (256 << 16) | 0, tipo, 0);  // Float4, c0, 256 registers
+  tabla.push((1 << 16) | 3, (1 << 16) | 4, (256 << 16) | 0, 0);  // vector float, 1x4, 256 elements
+  tabla.push(0x675f4300, 0, 0x76735f33, 0x5f300000);            // "g_C", "", "vs_3_0"
+  put(0, 0x102a1101);
+  put(3, 0); put(5, 0); put(7, 0); put(8, 0);
+  put(4, ct);
+  put(9, tabla.length * 4 + 4);  // size of the table container
+  tabla.forEach((v, i) => put(10 + i, v));
+  const sh = (10 + tabla.length) * 4;
+  put(6, sh);
+  let k = sh / 4;
+  put(k++, 0);                      // physicalOffset
+  put(k++, palabras * 4);           // size
+  put(k++, 0); put(k++, 0); put(k++, 0);
+  put(k++, 1 << 5);                 // one interpolator
+  put(k++, 0);                      // field18: no words before the elements
+  put(k++, elementos.length);
+  put(k++, 0);
+  for (const [instruccion, uso, indice] of elementos) put(k++, instruccion | (uso << 12) | (indice << 16));
+  put(k++, (0 << 8) | (10 << 4) | 0);  // register 0 -> COLOR0
+  const virt = k * 4;
+  put(1, virt);
+  put(2, palabras * 4);
+  const bytes = new Uint8Array(virt + palabras * 4);
+  for (let i = 0; i < k; i++) {
+    const v = w[i] ?? 0;
+    bytes[i * 4] = v >>> 24; bytes[i * 4 + 1] = (v >>> 16) & 255; bytes[i * 4 + 2] = (v >>> 8) & 255; bytes[i * 4 + 3] = v & 255;
+  }
+  bytes.set(micro, virt);
+  return bytes;
+}
+for (const interno of D3D_INTERNOS) {
+  const o = interno.direccion - IMAGEN_BASE;
+  if (be32(image, o) !== interno.primera) {
+    console.log(`D3D interno ${interno.direccion.toString(16)}: el microcodigo no coincide (otra version del juego); se omite`);
+    continue;
+  }
+  found.push({ name: `v_d3d_${interno.direccion.toString(16)}.bin`, file: 'default.xex', offset: o,
+               bytes: contenedorInterno(interno) });
+}
+
 // The same microcode can be stored more than once: keep the first copy of each container.
 const unique = [];
 const seen = new Set();

@@ -11,6 +11,8 @@
 #include <rex/cvar.h>
 #include <rex/logging.h>
 #include <rex/perf/counter.h>
+#include <chrono>
+#include "nfsmw_nativo_sistema.h"
 
 REXCVAR_DEFINE_BOOL(carbon_fast_cores, true, "Carbon/Android",
                     "Prefer fast CPU cores for newly created game and GPU threads")
@@ -67,5 +69,24 @@ void CarbonStartAndroidFrameLog(const std::filesystem::path& logs) {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_nfscarbon_android_GameActivity_nativeFrameTimeUs(JNIEnv*, jclass) {
-  return rex::perf::GetSnapshotCounter(rex::perf::CounterId::kFrameTimeUs);
+  // The native renderer does not feed the SDK's frame counters: the average time between its Swaps since
+  // the previous call (the launcher asks a few times per second).
+  // Not cached: the launcher starts asking before the game has parsed its arguments.
+  if (!nfsmw::nativo::Activo()) return rex::perf::GetSnapshotCounter(rex::perf::CounterId::kFrameTimeUs);
+  static uint64_t last_swaps = 0;
+  static auto last_time = std::chrono::steady_clock::now();
+  static jlong last_result = 0;
+  const uint64_t swaps = nfsmw::nativo::SwapsNativos();
+  const auto now = std::chrono::steady_clock::now();
+  const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+  if (swaps > last_swaps && elapsed >= 250000) {
+    last_result = jlong(elapsed / int64_t(swaps - last_swaps));
+    last_swaps = swaps;
+    last_time = now;
+  } else if (elapsed >= 2000000) {
+    last_result = 0;  // no frames for two seconds (loading)
+    last_swaps = swaps;
+    last_time = now;
+  }
+  return last_result;
 }
