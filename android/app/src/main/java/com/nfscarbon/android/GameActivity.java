@@ -217,7 +217,12 @@ public final class GameActivity extends SDLActivity
         args.add("--game_data_root=" + gameRoot);
         args.add("--user_data_root=" + userRoot);
         args.add("--cache_root=" + cacheRoot);
-        File logs = new File(userRoot, "logs");
+        // While the native renderer is experimental its log goes to the app's external folder
+        // (Android/data/com.nfscarbon.android/files/logs), where it can be read over USB.
+        boolean nativeRenderer = "nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key));
+        File external = getExternalFilesDir(null);
+        File logs = nativeRenderer && external != null ? new File(external, "logs") : new File(userRoot, "logs");
+        if (!logs.mkdirs() && !logs.isDirectory()) logs = new File(userRoot, "logs");
         logs.mkdirs();
         args.add("--log_file=" + new File(logs, "carbon.log").getAbsolutePath());
         // The launcher's graphics options win over nfscarbon.toml.

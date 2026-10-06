@@ -13,6 +13,8 @@
 #include <atomic>
 #include <string>
 #include <vector>
+#include <chrono>
+#include "nfsmw_nativo_sistema.h"
 
 REXCVAR_DEFINE_STRING(carbon_resolution, "1024x576", "Carbon/Android", "Scene and output resolution")
     .allowed({"640x360", "1024x576", "1280x720"}).lifecycle(rex::cvar::Lifecycle::kInitOnly);
@@ -71,13 +73,17 @@ extern "C" void CarbonWaitGpu(uint32_t);
 REX_EXTERN(__imp__sub_826DEFD0);
 REX_HOOK_RAW(sub_826DEFD0) {
   if (verified) {
-    const uint32_t seen = CarbonGpuGeneration();
+    // The native renderer's ring thread reports its own progress (nfsmw_espera_anillo.cpp).
+    static const bool native = nfsmw::nativo::Activo();
+    const uint32_t seen = native ? nfsmw::nativo::ProgresoAnillo() : CarbonGpuGeneration();
     const uint32_t state = ctx.r3.u32;
     const uint32_t device = state ? REX_LOAD_U32(state) : 0;
     if (device && !(REX_LOAD_U8(device + 10813) & 4)) {
       const uint32_t pointer = REX_LOAD_U32(device + 10768);
-      if (pointer && REX_LOAD_U32(pointer) == REX_LOAD_U32(state + 8))
-        CarbonWaitGpu(seen);
+      if (pointer && REX_LOAD_U32(pointer) == REX_LOAD_U32(state + 8)) {
+        if (native) nfsmw::nativo::EsperarProgresoAnillo(seen, std::chrono::microseconds(2000));
+        else CarbonWaitGpu(seen);
+      }
     }
   }
   __imp__sub_826DEFD0(ctx, base);

@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Only SDK options supported by Carbon's Xenos renderer. */
+/** Carbon's launcher options: SDK and Xenos settings, and the native renderer. */
 final class GameOptions {
     static final class Option {
         final String key, title, cvar, defaultValue;
@@ -23,7 +23,12 @@ final class GameOptions {
     static final Option LANGUAGE = new Option("language", "Idioma del juego", "user_language", "1",
         new String[]{"1", "5", "4", "3", "6"},
         new String[]{"Inglés", "Español", "Français", "Deutsch", "Italiano"});
+    // The native renderer of NFSMW Android Evolved (docs/renderizador-nativo.md) instead of Xenos emulation.
+    static final Option RENDERER = new Option("renderer", "Renderizador", "nfsmw_renderizador", "nativo",
+        new String[]{"nativo", "xenos"},
+        new String[]{"Nativo · experimental, más rápido", "Xenos · emulación"});
     static final Option[] ALL = {
+        RENDERER,
         LANGUAGE,
         new Option("resolution", "Resolución interna", "carbon_resolution", "1024x576",
             new String[]{"640x360", "1024x576", "1280x720"},
@@ -70,6 +75,13 @@ final class GameOptions {
         args.add("--vulkan_require_geometry_shader=false");
         args.add("--vulkan_require_fill_mode_non_solid=false");
         args.add("--headless=true");
+        if ("nativo".equals(get(context, RENDERER.key))) {
+            // Most Wanted's shortcuts that need its D3D layout: Carbon's VS objects keep several patched copies
+            // (no IM_LOAD without memcmp) and its game-side vegetation filter reads MW's device mirror.
+            args.add("--nfsmw_nativo_im_load_sin_memcmp=false");
+            args.add("--nfsmw_d3d_vegetacion_juego=false");
+            args.add("--nfsmw_nativo_sombra_d3d=false");
+        }
         String size = "true".equals(get(context, "single_pass")) ? get(context, "resolution") : "1280x720";
         String[] dimensions = size.split("x");
         args.add("--resolution=");
@@ -81,7 +93,9 @@ final class GameOptions {
         args.add("--video_mode_refresh_rate=" + ("unlimited".equals(fps) ? "240" : fps));
         args.add("--vulkan_async_skip_incomplete_frames=true");
         boolean detailed = "detailed".equals(get(context, "diagnostics"));
-        args.add("--log_level=" + (detailed ? "info" : "warn"));
+        // The native renderer is experimental: its [nativo] reports are info lines.
+        boolean nativeRenderer = "nativo".equals(get(context, RENDERER.key));
+        args.add("--log_level=" + (detailed || nativeRenderer ? "info" : "warn"));
         args.add("--carbon_perf_csv=" + detailed);
         for (Option option : ALL) if (option.cvar != null) {
             String value = get(context, option.key);

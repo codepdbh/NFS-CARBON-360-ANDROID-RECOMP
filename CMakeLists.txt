@@ -98,6 +98,27 @@ else()
 endif()
 
 rexglue_setup_target(nfscarbon GPU_PLUGINS xenos)
+
+# Native renderer of NFSMW Android Evolved (docs/renderizador-nativo.md), built from its sources with NFS
+# Carbon's addresses (NFSC_RECOMP) and Carbon's hooks (src/carbon_nativo_ganchos.cpp). Off unless
+# nfsmw_renderizador=nativo.
+get_filename_component(NFSC_NFSMW_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../nfsmw-android/app/src" ABSOLUTE)
+target_sources(nfscarbon PRIVATE
+    src/carbon_nativo_ganchos.cpp
+    src/carbon_nativo_enlaces.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_sistema.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_destinos.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_dibujos.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_shaders.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_ganchos.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_texturas_pool.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_nativo_captura.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_shader_library.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_espera_anillo.cpp
+    ${NFSC_NFSMW_SRC}/nfsmw_ajustes_graficos.cpp)
+target_include_directories(nfscarbon PRIVATE
+    "${NFSC_NFSMW_SRC}" "${REXSDK_DIR}/src/ui/shaders" "${REXSDK_DIR}/thirdparty/xxHash")
+target_compile_definitions(nfscarbon PRIVATE NFSC_RECOMP=1)
 if(ANDROID)
     # The shared MW SDK selects its own app name in its Android entry point.
     # Keep that SDK untouched and select Carbon in this project's bootstrap.

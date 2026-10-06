@@ -24,3 +24,6 @@ android/icono/
 *.aab
 *.jks
 *.keystore
+
+# Function-matching caches (built from the generated code of the games)
+tools/emparejar_d3d/*.pkl
