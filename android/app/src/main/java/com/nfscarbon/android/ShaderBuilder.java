@@ -49,7 +49,7 @@ final class ShaderBuilder {
     static final String LIBRARY = "nfscarbon_shaders.nfsp";
     // Version of assets/shaders (shader_common.h, the modules and build.js) the library was built with, kept next
     // to it. A library from another version is built again.
-    static final String LIBRARY_VERSION = "carbon-3";  // 2: BLENDINDICES as float4; 3: input remap for locations 16-21
+    static final String LIBRARY_VERSION = "carbon-4";  // 2: BLENDINDICES as float4; 3: input remap for locations 16-21; 4: 256 pixel constants
     private static final String VERSION_FILE = LIBRARY + ".version";
     private static final String TAG = "NFSCarbon";
     private static final String HOST = "appassets.androidplatform.net";

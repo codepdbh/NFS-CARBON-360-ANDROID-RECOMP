@@ -87,7 +87,8 @@ namespace vk
 // Con -fvk-use-dx-layout cada float4 ocupa 16 bytes contiguos, asi que cualquier palabra de 4 bytes del
 // bloque compartido es un componente: v[B / 16][(B % 16) / 4], y asuint la lee sin tocar un bit.
 struct NfsmwBloqueVs { float4 v[256]; };
-struct NfsmwBloquePs { float4 v[224]; };
+// NFS Carbon: all 256 pixel constants (Most Wanted's has 224).
+struct NfsmwBloquePs { float4 v[256]; };
 // NFS Carbon: 32 (g_InputRemap of locations 16-21 at bytes 488..511).
 struct NfsmwBloqueCompartidas { float4 v[32]; };
 [[vk::binding(0, 4)]] ConstantBuffer<NfsmwBloqueVs> g_UboVertex;
