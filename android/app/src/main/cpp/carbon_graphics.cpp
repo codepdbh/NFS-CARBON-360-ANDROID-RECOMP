@@ -12,6 +12,7 @@
 #include <array>
 #include <atomic>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <chrono>
 #include "nfsmw_nativo_sistema.h"
@@ -191,3 +192,53 @@ REX_HOOK_RAW(sub_8231F5A8) {
   }
   __imp__sub_8231F5A8(ctx, base);
 }
+
+// Voices in English with the text in another language (launcher "Idioma de las voces"). The game picks its speech,
+// police chatter and race intro audio banks by the text language (sound\Speech\UCAPAudio_sp.idx and so on): the
+// English PAL copy only has the _en ones, so with Spanish text the characters went silent. Every file the game opens
+// goes through sub_8245FAD0(name, ...) (its archive lookup, then CreateFile), and every archive lookup hashes the
+// name with sub_8245D978: there a sound path with a language suffix gets "en" instead, in place (the same length).
+REXCVAR_DEFINE_BOOL(carbon_sound_english, false, "Carbon/Android",
+                    "Open the English sound banks (voices, police, race intros) whatever the text language")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+namespace {
+void EnglishSoundName(uint8_t* base, uint32_t name) {
+  static const bool english = REXCVAR_GET(carbon_sound_english);
+  if (english && name) {
+    char* text = reinterpret_cast<char*>(base + name);
+    const size_t length = strnlen(text, 260);
+    const auto lower = [](char c) { return char(c >= 'A' && c <= 'Z' ? c + 32 : c); };
+    bool sound = false;
+    for (size_t i = 0; i + 6 <= length && !sound; ++i) {
+      sound = lower(text[i]) == 's' && lower(text[i + 1]) == 'o' && lower(text[i + 2]) == 'u' &&
+              lower(text[i + 3]) == 'n' && lower(text[i + 4]) == 'd' && text[i + 5] == '\\';
+    }
+    const char* dot = sound ? std::strrchr(text, '.') : nullptr;
+    if (dot && dot - text >= 3 && dot[-3] == '_') {
+      char* code = text + (dot - text) - 2;
+      const char a = lower(code[0]), b = lower(code[1]);
+      if ((a == 's' && b == 'p') || (a == 'f' && b == 'r') || (a == 'g' && b == 'e') || (a == 'i' && b == 't') ||
+          (a == 'j' && b == 'a')) {
+        code[0] = 'e';
+        code[1] = 'n';
+      }
+    }
+  }
+}
+}  // namespace
+
+REX_EXTERN(__imp__sub_8245FAD0);
+REX_HOOK_RAW(sub_8245FAD0) {
+  EnglishSoundName(base, ctx.r3.u32);
+  __imp__sub_8245FAD0(ctx, base);
+}
+
+// The hash of a name for the ZZDATA archive lookup (sub_8245DBC0): the stream path (nisaudio_*.big) reaches the
+// archive here without going through sub_8245FAD0. A half-renamed bank (English index, Spanish data) left the race
+// intro loading forever.
+REX_EXTERN(__imp__sub_8245D978);
+REX_HOOK_RAW(sub_8245D978) {
+  EnglishSoundName(base, ctx.r3.u32);
+  __imp__sub_8245D978(ctx, base);
+}
+

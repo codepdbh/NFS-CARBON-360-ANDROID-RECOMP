@@ -17,7 +17,7 @@ const MAX_CONTAINER = 1 << 18;
 const LIBRARIES = {
   // PAL (English, multi-language text)
   b1e423914f5feb0871c8903aded4d86852d34be3b831b42f5c6473c7c7304221:
-    '9d6c59e985a53837f9f1d2c00f7250dbda45066e18517e4ad23c30180ad64965',
+    '6a49bc15f4401205ccefea9bd63fe221f444eae24afd97c43c095c2b466968d0',
 };
 
 const progress = (fraction, text) => host.progress(Math.max(0, Math.min(1, fraction)), text);

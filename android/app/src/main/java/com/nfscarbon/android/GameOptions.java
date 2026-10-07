@@ -93,7 +93,10 @@ final class GameOptions {
         args.add("--vulkan_require_geometry_shader=false");
         args.add("--vulkan_require_fill_mode_non_solid=false");
         args.add("--headless=true");
-        args.add("--user_language=" + ("text".equals(get(context, VOICES.key)) ? get(context, LANGUAGE.key) : "1"));
+        boolean englishVoices = !"text".equals(get(context, VOICES.key));
+        args.add("--user_language=" + (englishVoices ? "1" : get(context, LANGUAGE.key)));
+        // The speech banks follow the text language: with English voices they are opened as _en (carbon_graphics.cpp).
+        if (englishVoices && !"1".equals(get(context, LANGUAGE.key))) args.add("--carbon_sound_english=true");
         if ("nativo".equals(get(context, RENDERER.key))) {
             // Most Wanted's shortcuts that need its D3D layout: Carbon's VS objects keep several patched copies
             // (no IM_LOAD without memcmp) and its game-side vegetation filter reads MW's device mirror.

@@ -88,7 +88,8 @@ namespace vk
 // bloque compartido es un componente: v[B / 16][(B % 16) / 4], y asuint la lee sin tocar un bit.
 struct NfsmwBloqueVs { float4 v[256]; };
 struct NfsmwBloquePs { float4 v[224]; };
-struct NfsmwBloqueCompartidas { float4 v[23]; };
+// NFS Carbon: 32 (g_InputRemap of locations 16-21 at bytes 488..511).
+struct NfsmwBloqueCompartidas { float4 v[32]; };
 [[vk::binding(0, 4)]] ConstantBuffer<NfsmwBloqueVs> g_UboVertex;
 [[vk::binding(1, 4)]] ConstantBuffer<NfsmwBloquePs> g_UboPixel;
 [[vk::binding(2, 4)]] ConstantBuffer<NfsmwBloqueCompartidas> g_UboCompartidas;
@@ -110,7 +111,8 @@ struct NfsmwBloqueCompartidas { float4 v[23]; };
 #define g_NdcOffset                (NFSMW_UBO ? float2(NFSMW_COMPARTIDA_FLOAT(288), NFSMW_COMPARTIDA_FLOAT(292)) : vk::RawBufferLoad<float2>(g_PushConstants.SharedConstants + 288))
 // NFSMW: de donde sale cada componente de la entrada de vertices de esa ubicacion
 // (el D3D parchea el swizzle del fetch segun la declaracion). 0xFFF = tal cual.
-#define g_InputRemap(LOC)          (NFSMW_UBO ? NFSMW_COMPARTIDA_UINT(296 + (LOC) * 4) : vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 296 + (LOC) * 4))
+#define NFSMW_REMAPEO_BYTE(LOC)    ((LOC) < 16 ? 296 + (LOC) * 4 : 488 + ((LOC) - 16) * 4)
+#define g_InputRemap(LOC)          (NFSMW_UBO ? NFSMW_COMPARTIDA_UINT(NFSMW_REMAPEO_BYTE(LOC)) : vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + NFSMW_REMAPEO_BYTE(LOC)))
 
 [[vk::constant_id(0)]] const uint g_SpecConstants = 0;
 
