@@ -17,11 +17,14 @@ set(REXSDK_DIR "${REXSDK_DIR}" CACHE PATH "ReXGlue SDK sources" FORCE)
 set(SDL_SHARED ON CACHE BOOL "SDLActivity loads libSDL3.so" FORCE)
 set(SDL_STATIC OFF CACHE BOOL "Use shared SDL" FORCE)
 add_library(nfscarbon_diagnostics SHARED android_diagnostics.cpp)
-target_include_directories(nfscarbon_diagnostics PRIVATE "${REXSDK_DIR}/thirdparty/vulkan-headers/include")
-target_link_libraries(nfscarbon_diagnostics PRIVATE vulkan)
+target_include_directories(nfscarbon_diagnostics PRIVATE "${REXSDK_DIR}/thirdparty/vulkan-headers/include"
+    "${REXSDK_DIR}/include")
 target_link_options(nfscarbon_diagnostics PRIVATE "-Wl,-z,max-page-size=16384")
 add_subdirectory("${CARBON_ROOT}" "carbon-app")
-target_sources(nfscarbon PRIVATE android_touch.cpp carbon_performance.cpp carbon_graphics.cpp)
+target_link_libraries(nfscarbon_diagnostics PRIVATE rex_android_gpu_driver dl)
+# Package the custom-driver loader and its namespace hooks alongside SDL and the game.
+add_dependencies(nfscarbon adrenotools main_hook hook_impl file_redirect_hook gsl_alloc_hook)
+target_sources(nfscarbon PRIVATE android_touch.cpp carbon_performance.cpp carbon_graphics.cpp carbon_commands.cpp)
 target_link_libraries(nfscarbon PRIVATE rexgpu-xenos)
 
 # SDL's Android event wait wakes itself when it inserts its polling sentinel.

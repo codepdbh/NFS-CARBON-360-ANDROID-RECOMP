@@ -57,7 +57,7 @@ void SelectMode(uint8_t* base) {
 }
 
 void CarbonVerifyGraphicsHooks(uint8_t* base) {
-  const std::array<std::pair<uint32_t, uint32_t>, 15> words = {{
+  const std::array<std::pair<uint32_t, uint32_t>, 23> words = {{
       {0x824FFD30, 0x7D8802A6}, {0x824FFD38, 0x38E301E4},
       {0x824FFD3C, 0x39430064}, {0x824FFD40, 0x38C300A4},
       {0x8250B350, 0x7D8802A6}, {0x8250B360, 0x4859FFF5},
@@ -66,6 +66,10 @@ void CarbonVerifyGraphicsHooks(uint8_t* base) {
       {0x82B7835C, 0x8207B0FC}, // Spanish row in the language resource table.
       {0x826DEFD0, 0x7D8802A6}, {0x826DEFD8, 0x9421FF80},
       {0x826DF034, 0x817D2A10}, {0x826DF040, 0x814B0000},
+      {0x824695D8, 0x7D8802A6}, {0x824695EC, 0x817F000C},
+      {0x82469614, 0x3966000F}, {0x82469640, 0x915F0014},
+      {0x82469650, 0x7D8802A6}, {0x8246965C, 0x3D6082B9},
+      {0x82469664, 0x3BEBC764}, {0x824696A8, 0x817E0000},
   }};
   for (auto [address, value] : words)
     if (REX_LOAD_U32(address) != value) REX_FATAL("Carbon graphics/language hook fingerprint mismatch");

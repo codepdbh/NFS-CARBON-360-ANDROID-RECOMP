@@ -30,16 +30,39 @@ import java.util.zip.ZipOutputStream;
 /** Own-app reports only. Generating a report never uploads or sends it. */
 final class Diagnostics {
     static final String EMAIL = "daniebatuani@gmail.com";
-    static final String ISSUES = "https://github.com/codepdbh/NFS-CARBON-360-DECOMP/issues/new";
+    static final String ISSUES = "https://github.com/codepdbh/NFS-CARBON-360-ANDROID-RECOMP/issues/new";
     private static final int LIMIT = 256 * 1024;
     private static JSONObject cachedGpu;
-    private static native String nativeGpuReport();
+    private static native String nativeGpuReport(String hooks, String temp, String directory, String library);
+    static synchronized void invalidateGpu() { cachedGpu = null; }
+    static synchronized void acceptGpu(Context context, String report) throws Exception {
+        cachedGpu = new JSONObject(report);
+        context.getSharedPreferences("nfscarbon_diagnostics", 0).edit()
+                .putString("gpu_key", GpuDrivers.key(context)).putString("gpu_report", report).apply();
+    }
+    static String probeSelectedDriver(Context context) {
+        System.loadLibrary("nfscarbon_diagnostics");
+        GpuDrivers.Driver driver = GpuDrivers.selected(context);
+        return nativeGpuReport(context.getApplicationInfo().nativeLibraryDir, context.getCacheDir().getAbsolutePath(),
+                driver == null ? "" : driver.directory.getAbsolutePath(), driver == null ? "" : driver.library);
+    }
+    static synchronized JSONObject gpu(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("nfscarbon_diagnostics", 0);
+        if (GpuDrivers.key(context).equals(prefs.getString("gpu_key", ""))) {
+            try { return new JSONObject(prefs.getString("gpu_report", "{}")); } catch (Exception ignored) { }
+        }
+        if (GpuDrivers.selected(context) == null) return gpu();
+        JSONObject unknown = new JSONObject();
+        try { unknown.put("requestedDriver", GpuDrivers.selected(context).name)
+                .put("probeError", "Driver seleccionado pendiente de probar"); } catch (Exception ignored) { }
+        return unknown;
+    }
 
     static synchronized JSONObject gpu() {
         if (cachedGpu == null) {
             try {
                 System.loadLibrary("nfscarbon_diagnostics");
-                cachedGpu = new JSONObject(nativeGpuReport());
+                cachedGpu = new JSONObject(nativeGpuReport("", "", "", ""));
             } catch (Exception | LinkageError error) {
                 // A failed probe is not proof of incompatibility. Record it and
                 // let the native runtime perform its normal capability checks.
@@ -50,8 +73,8 @@ final class Diagnostics {
         return cachedGpu;
     }
 
-    static String incompatibility() {
-        JSONObject result = gpu();
+    static String incompatibility(Context context) {
+        JSONObject result = gpu(context);
         if (result.optBoolean("compatible", true)) return null;
         StringBuilder message = new StringBuilder("El controlador de ")
                 .append(result.optString("gpu", "esta GPU"))
@@ -65,11 +88,12 @@ final class Diagnostics {
         String version = "desconocida";
         try { version = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName; }
         catch (Exception ignored) { }
-        JSONObject device = gpu();
+        JSONObject device = gpu(context);
         return "NFS Carbon 360 " + version + "\nTeléfono: " + Build.MANUFACTURER + " " + Build.MODEL
                 + "\nAndroid: " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")"
                 + "\nGPU: " + device.optString("gpu", "no disponible")
-                + "\nVulkan: " + device.optString("vulkan", "no disponible") + "\n";
+                + "\nVulkan: " + device.optString("vulkan", "no disponible")
+                + "\nDriver seleccionado: " + (GpuDrivers.selected(context) == null ? "Sistema" : GpuDrivers.selected(context).name) + "\n";
     }
 
     static void recordLaunch(Context context) {
@@ -102,7 +126,7 @@ final class Diagnostics {
             for (String argument : GameOptions.arguments(context)) info.append(argument).append('\n');
             info.append("\nDescribe qué ocurrió, cómo reproducirlo y la edición del juego.\n");
             add(zip, "informe.txt", info.toString().getBytes(StandardCharsets.UTF_8));
-            add(zip, "gpu.json", gpu().toString(2).getBytes(StandardCharsets.UTF_8));
+            add(zip, "gpu.json", gpu(context).toString(2).getBytes(StandardCharsets.UTF_8));
             addFile(zip, "last-java-crash.txt", new File(context.getFilesDir(), "last-java-crash.txt"));
             File logs = new File(context.getFilesDir(), "nfscarbon/user/logs");
             File frames = new File(logs, "carbon-frames.csv");

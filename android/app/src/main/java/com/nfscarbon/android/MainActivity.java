@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -37,6 +38,13 @@ public final class MainActivity extends Activity {
     static final String GAME_FOLDER_NAME = "NFSCARBON";
     private ShaderBuilder shaderBuilder;
     private static final int IMPORT = 10;
+    private static final int REQUEST_DRIVER_ZIP = 45;
+    private static final int REQUEST_DRIVER_PROBE = 46;
+    private boolean playAfterProbe;
+    private boolean launcherResumed;
+    private boolean checkingUpdates;
+    private ReleaseUpdates.Result pendingUpdate;
+    private boolean pendingUpdateManual;
     private static final String EXPECTED_XEX = "b1e423914f5feb0871c8903aded4d86852d34be3b831b42f5c6473c7c7304221";
     private TextView status;
     private Button play, importButton;
@@ -49,7 +57,9 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
+        if (state != null) playAfterProbe = state.getBoolean("play_after_probe");
         setContentView(buildScreen());
+        checkUpdates(false);
     }
 
     private View buildScreen() {
@@ -154,8 +164,67 @@ public final class MainActivity extends Activity {
 
     @Override public void onResume() {
         super.onResume();
+        launcherResumed = true;
         refreshOptions();
         refresh();
+        if (pendingUpdate != null && !busy) {
+            ReleaseUpdates.Result result = pendingUpdate;
+            pendingUpdate = null;
+            showUpdate(result, pendingUpdateManual);
+        }
+    }
+
+    @Override protected void onPause() {
+        launcherResumed = false;
+        super.onPause();
+    }
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putBoolean("play_after_probe", playAfterProbe);
+        super.onSaveInstanceState(state);
+    }
+    private void reportError(String message) {
+        new AlertDialog.Builder(this).setTitle("NFS Carbon")
+                .setMessage(message).setPositiveButton("Aceptar", null).show();
+    }
+
+    private void checkUpdates(boolean manual) {
+        if (checkingUpdates) return;
+        checkingUpdates = true;
+        if (optionsList != null) refreshOptions();
+        ReleaseUpdates.check(this, manual, result -> {
+            if (isFinishing() || isDestroyed()) return;
+            checkingUpdates = false;
+            refreshOptions();
+            if (!launcherResumed || busy) {
+                pendingUpdate = result; pendingUpdateManual = manual;
+            } else showUpdate(result, manual);
+        });
+    }
+
+    private void showUpdate(ReleaseUpdates.Result result, boolean manual) {
+        if (result.error != null) {
+            if (manual) reportError(result.error);
+            return;  // Offline/rate-limited checks never affect playing.
+        }
+        if (!ReleaseVersion.newer(result.tag, ReleaseUpdates.installed(this))) {
+            if (manual) new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Actualizaciones").setMessage("Tienes la versión " + ReleaseUpdates.installed(this)
+                            + ". No hay una versión estable más reciente en GitHub.")
+                    .setPositiveButton("Aceptar", null).show();
+            return;
+        }
+        android.content.SharedPreferences updates = ReleaseUpdates.prefs(this);
+        if (!manual && result.tag.equals(updates.getString("notified_tag", ""))) return;
+        updates.edit().putString("notified_tag", result.tag).apply();
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Nueva versión disponible: " + result.tag)
+                .setMessage("Puedes actualizar desde GitHub o seguir jugando con esta versión. Instala el APK "
+                        + "encima del anterior para conservar tus partidas y ajustes.")
+                .setPositiveButton("Actualizar", (dialog, which) -> {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(result.url))); }
+                    catch (ActivityNotFoundException error) { reportError("No se encontró una app para abrir GitHub."); }
+                })
+                .setNegativeButton("Más tarde", null).show();
     }
 
     private LinearLayout card() {
@@ -200,22 +269,90 @@ public final class MainActivity extends Activity {
     private void refreshOptions() {
         if (optionsList == null) return;
         optionsList.removeAllViews();
-        for (GameOptions.Option option : GameOptions.ALL) {
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), dp(10), dp(12), dp(10));
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(0x12FFFFFF); bg.setCornerRadius(dp(10));
-            row.setBackground(bg);
-            row.addView(label(option.title, 13, Color.WHITE, false), new LinearLayout.LayoutParams(0, -2, 1));
-            TextView value = label(option.label(GameOptions.get(this, option.key)) + "  ›", 12, ACCENT, true);
-            value.setGravity(Gravity.END);
-            row.addView(value, new LinearLayout.LayoutParams(0, -2, 1.1f));
-            row.setOnClickListener(ignored -> chooseOption(option));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-            params.topMargin = dp(6);
-            optionsList.addView(row, params);
+        GpuDrivers.Driver driver = GpuDrivers.selected(this);
+        optionsList.addView(optionRow("Driver Vulkan", driver == null ? "Del sistema" : driver.name, this::chooseDriver));
+        optionsList.addView(optionRow("Probar driver", "Comprobar GPU y Vulkan", () -> probeDriver(false)));
+        optionsList.addView(optionRow("Buscar actualizaciones", checkingUpdates ? "Comprobando GitHub…"
+                : "Versión " + ReleaseUpdates.installed(this), () -> checkUpdates(true)));
+        for (GameOptions.Option option : GameOptions.ALL)
+            optionsList.addView(optionRow(option.title, option.label(GameOptions.get(this, option.key)), () -> chooseOption(option)));
+    }
+
+    private View optionRow(String title, String current, Runnable clicked) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(10), dp(12), dp(10));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0x12FFFFFF); bg.setCornerRadius(dp(10));
+        row.setBackground(bg);
+        row.addView(label(title, 13, Color.WHITE, false), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView value = label(current + "  ›", 12, ACCENT, true);
+        value.setGravity(Gravity.END);
+        row.addView(value, new LinearLayout.LayoutParams(0, -2, 1.1f));
+        row.setOnClickListener(ignored -> { if (!busy) clicked.run(); });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.topMargin = dp(6);
+        row.setLayoutParams(params);
+        return row;
+    }
+
+    private void chooseDriver() {
+        java.util.List<GpuDrivers.Driver> drivers = GpuDrivers.list(this);
+        String[] names = new String[drivers.size() + 1];
+        names[0] = "Driver del sistema";
+        int selected = 0;
+        for (int i = 0; i < drivers.size(); ++i) {
+            names[i + 1] = drivers.get(i).name;
+            if (drivers.get(i).id.equals(GpuDrivers.selectedId(this))) selected = i + 1;
         }
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Driver Vulkan")
+                .setSingleChoiceItems(names, selected, (dialog, which) -> {
+                    GpuDrivers.select(this, which == 0 ? "" : drivers.get(which - 1).id);
+                    refreshOptions(); dialog.dismiss();
+                })
+                .setPositiveButton("Importar ZIP", (dialog, which) -> {
+                    Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+                            .addCategory(Intent.CATEGORY_OPENABLE);
+                    startActivityForResult(picker, REQUEST_DRIVER_ZIP);
+                })
+                .setNeutralButton("Eliminar seleccionado", (dialog, which) -> {
+                    GpuDrivers.Driver driver = GpuDrivers.selected(this);
+                    if (driver == null) return;
+                    try { GpuDrivers.remove(this, driver); refreshOptions(); }
+                    catch (IOException error) { reportError(error.getMessage()); }
+                })
+                .setNegativeButton("Volver", null).show();
+    }
+
+    private void probeDriver(boolean playAfter) {
+        if (busy) return;
+        busy = true;
+        playAfterProbe = playAfter;
+        play.setEnabled(false);
+        startActivityForResult(new Intent(this, GpuProbeActivity.class), REQUEST_DRIVER_PROBE);
+    }
+
+    private void showDriverReport(String report) {
+        try {
+            Diagnostics.acceptGpu(this, report);
+            org.json.JSONObject gpu = new org.json.JSONObject(report);
+            boolean failed = gpu.optBoolean("driverLoadFailed") || gpu.has("probeError");
+            String text = "GPU: " + gpu.optString("gpu", "no disponible")
+                    + "\nVulkan: " + gpu.optString("vulkan", "no disponible")
+                    + "\nConjuntos de descriptores: " + gpu.optInt("maxBoundDescriptorSets")
+                    + "\n" + (gpu.optBoolean("compatible") ? "Funciones del renderizador nativo disponibles."
+                            : "Funciones faltantes: " + gpu.optJSONArray("missing"));
+            if (failed) text = "No se pudo probar el driver. " + gpu.optString("probeError", "Error al cargar Vulkan.");
+            if (playAfterProbe && !failed && (!"nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key)) || gpu.optBoolean("compatible"))) { playAfterProbe = false; playChecked(); return; }
+            playAfterProbe = false;
+            new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Prueba del driver Vulkan").setMessage(text)
+                    .setPositiveButton("Aceptar", null)
+                    .setNeutralButton("Usar sistema", (dialog, which) -> {
+                        GpuDrivers.select(this, ""); refreshOptions();
+                    }).show();
+        } catch (Exception error) { playAfterProbe = false; reportError("Diagnóstico no válido: " + error.getMessage()); }
     }
 
     private void chooseOption(GameOptions.Option option) {
@@ -273,6 +410,12 @@ public final class MainActivity extends Activity {
     }
     private void play() {
         if (busy || !storageAllowed() || !valid(gameRoot())) { refresh(); return; }
+        // Probe both the system native path and every imported driver in a fresh process.
+        if (GpuDrivers.selected(this) != null || "nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key))) {
+            probeDriver(true);
+        } else playChecked();
+    }
+    private void playChecked() {
         busy = true; play.setEnabled(false); status.setText("Comprobando la edición del ejecutable…");
         new Thread(() -> {
             try {
@@ -332,6 +475,30 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == REQUEST_DRIVER_PROBE) {
+            busy = false;
+            refresh();
+            showDriverReport(result == RESULT_OK && data != null ? data.getStringExtra("gpu_report")
+                    : "{\"probeError\":\"La prueba se cerró o fue cancelada. Puedes volver al driver del sistema.\",\"driverLoadFailed\":true}");
+            return;
+        }
+        if (request == REQUEST_DRIVER_ZIP) {
+            if (result != RESULT_OK || data == null || data.getData() == null) return;
+            Uri zip = data.getData();
+            busy = true; play.setEnabled(false);
+            status.setText("Importando driver Vulkan…");
+            new Thread(() -> {
+                try {
+                    GpuDrivers.Driver driver = GpuDrivers.importZip(this, zip);
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        busy = false; GpuDrivers.select(this, driver.id); refreshOptions(); refresh();
+                        status.setText("Driver importado: " + driver.name + ". Usa Probar driver para comprobarlo.");
+                    });
+                } catch (Exception error) { failed(error); }
+            }, "CarbonDriverImport").start();
+            return;
+        }
         if (request != IMPORT || result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData(); busy = true; play.setEnabled(false); importButton.setEnabled(false);
         status.setText("Copiando tu juego. Deja abierta esta pantalla…");

@@ -36,7 +36,15 @@ refuses another `default.xex`, because the recompiled code and the hooks depend 
 An app separate from Most Wanted (package `com.nfscarbon.android`): full touch controls with a layout editor,
 Bluetooth controllers, manual log reports and a launcher with settings.
 
-**Requirements:** Android 8.0 or later, ARM64, Vulkan 1.1 or later and about 6 GB free for the game. Tested on an S25
+**v0.3.2:** brings the compatibility fixes from Most Wanted 0.5.4: GPUs limited to four descriptor sets,
+BC4/BC5 conversion for Xclipse, ARM command publication adapted to Carbon, Vulkan driver importing/testing and
+optional release notifications. Carbon's launcher, languages and controls are preserved. Download the APK from
+[Releases](https://github.com/codepdbh/NFS-CARBON-360-ANDROID-RECOMP/releases/latest) and install it over the previous version
+**without uninstalling or clearing app data** to keep saves and settings.
+
+**Requirements:** Android 8.0 or later, ARM64, Vulkan 1.1 or later **with the descriptor indexing features needed by
+the native renderer**, and about 6 GB free for the game. The Vulkan version alone does not guarantee those features;
+the launcher checks them. External drivers require Android 9 or later. Tested on an S25
 Ultra (Adreno 830). The native renderer is the one of Most Wanted, which already runs on Adreno, Mali (MediaTek /
 Dimensity, with its Mali occlusion query protection) and other Vulkan 1.1 GPUs; the Vulkan 1.1 path was also checked
 with Carbon. Carbon itself has not been tried on those phones yet: if you do, please send the log.
@@ -49,10 +57,15 @@ with Carbon. Carbon itself has not been tried on those phones yet: if you do, pl
 4. Choose your settings and tap **Jugar**. The first time, the app builds the native renderer's shaders from your
    files (a few seconds; it only happens again if their version changes).
 
-The APK contains neither the game nor anything derived from it.
+The APK contains neither the game nor anything derived from it. See the [compatibility and driver guide](docs/compatibilidad-android-0.3.2.md).
 
 ### Launcher settings
 
+- **Driver Vulkan:** import ZIP packages with `meta.json` and Android ARM64 libraries, select a driver or return to
+  the system driver. **Probar driver** checks the GPU and Vulkan features in a separate process. Turnip is for Adreno
+  and PanVK is for Mali; each package must support your GPU, Android and kernel. Driver packages are not bundled.
+- **Buscar actualizaciones:** checks this repository's latest stable release. Automatic notifications offer
+  **Actualizar** or **Más tarde**; updating is optional and playing works offline. No APK is installed automatically.
 - **Renderizador:** *Nativo* (default) draws with Vulkan directly, with Most Wanted's renderer adapted to Carbon;
   *Xenos* emulates the Xbox 360 GPU (more compatible in principle, much slower).
 - **Atajos del renderizador (MW):** optimisations measured in Most Wanted, off by default until they are validated in
@@ -88,18 +101,18 @@ and DXC compiled to WebAssembly, and checks the SHA-256 expected for your execut
 Clone both projects side by side and pin the dependency to the tested revision:
 
 ```powershell
-git clone https://github.com/codepdbh/NFS-CARBON-360-DECOMP.git
+git clone https://github.com/codepdbh/NFS-CARBON-360-ANDROID-RECOMP.git
 git clone https://github.com/codepdbh/nfsmw-android.git
-git -C nfsmw-android checkout c2cd03742c24a76d0c349512a09d1244fe6e456d
+git -C nfsmw-android checkout a7e6e4c3ca71064d0eea56d91fcc8aaf63418fc7
 python nfsmw-android/tools/fetch_thirdparty.py
-python -m pip install -r NFS-CARBON-360-DECOMP/requirements.txt
+python -m pip install -r NFS-CARBON-360-ANDROID-RECOMP/requirements.txt
 ```
 
 Put your extracted copy in a sibling folder called `Need_for_Speed_Carbon`:
 
 ```text
 work-folder/
-  NFS-CARBON-360-DECOMP/
+  NFS-CARBON-360-ANDROID-RECOMP/
   nfsmw-android/
   Need_for_Speed_Carbon/
     default.xex
@@ -115,7 +128,7 @@ Ninja, Python 3 with `capstone` 5.0.7. For Android also JDK 17+, the Android SDK
 From the Carbon repository, say where LLVM, CMake and Ninja are (CMake and Ninja in the same folder):
 
 ```powershell
-cd NFS-CARBON-360-DECOMP
+cd NFS-CARBON-360-ANDROID-RECOMP
 $carbonBuildOptions = @{
     SdkRoot = '..\nfsmw-android\sdk'
     LlvmBin = 'C:\tools\llvm20\bin'
@@ -175,7 +188,7 @@ The PC build uses Xenos on Direct3D 12 and is meant for testing. Controls:
 ## Diagnostics and reports
 
 On Android, **Enviar crash o log** prepares a ZIP with the app's logs and the device diagnostics; nothing is sent on
-its own. You can also open an [issue](https://github.com/codepdbh/NFS-CARBON-360-DECOMP/issues) with your phone, GPU
+its own. You can also open an [issue](https://github.com/codepdbh/NFS-CARBON-360-ANDROID-RECOMP/issues) with your phone, GPU
 and the steps. Do not attach game data or dumps of the executable.
 
 On PC the log is `out/runtime/carbon.log`; `.\run_pc.ps1 -GpuDiagnostics` turns on the D3D12 debug layer and DRED, and

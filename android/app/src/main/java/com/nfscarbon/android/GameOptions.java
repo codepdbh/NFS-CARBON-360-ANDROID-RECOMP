@@ -131,6 +131,7 @@ final class GameOptions {
             if ("vsync".equals(option.key) && "unlimited".equals(fps)) value = "false";
             args.add("--" + option.cvar + "=" + value);
         }
+        GpuDrivers.arguments(context, args);
         return args;
     }
 }
