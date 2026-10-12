@@ -55,7 +55,11 @@ final class GameOptions {
             new String[]{"30", "60", "90", "120", "unlimited"},
             new String[]{"30 FPS", "60 FPS", "90 FPS · experimental", "120 FPS · experimental", "Sin límite · experimental"}),
         new Option("single_pass", "Antialiasing de la escena", "carbon_single_pass", "true",
-            new String[]{"true", "false"}, new String[]{"Desactivado · rendimiento", "Original · más carga"}),
+            new String[]{"true", "false"}, new String[]{"Desactivado · rendimiento", "Original · solo Xenos, más carga"}),
+        // SDL pump frames queued ahead (5.3 ms each): more of them ride over hitches without audio cuts, at the cost
+        // of latency.
+        new Option("audio_buffer", "Búfer de audio", "audio_sdl_bomba_cola", "12",
+            new String[]{"12", "20"}, new String[]{"Normal · 64 ms", "Grande · 107 ms, si hay cortes"}),
         new Option("vsync", "Sincronización vertical", "vsync", "true",
             new String[]{"true", "false"}, new String[]{"Activada", "Desactivada"}),
         new Option("async", "Compilación de shaders", "async_shader_compilation", "true",
@@ -107,7 +111,10 @@ final class GameOptions {
                 for (String cvar : MW_SHORTCUT_CVARS) args.add("--" + cvar + "=false");
             }
         }
-        String size = "true".equals(get(context, "single_pass")) ? get(context, "resolution") : "1280x720";
+        // The original antialiasing splits the scene in EDRAM tiles with MSAA, which only Xenos reproduces: with the
+        // native renderer it covered half the screen in menus and cutscenes. The native renderer always draws one pass.
+        boolean singlePass = "true".equals(get(context, "single_pass")) || "nativo".equals(get(context, RENDERER.key));
+        String size = singlePass ? get(context, "resolution") : "1280x720";
         // Xenos keeps the scene in the 10 MB of emulated EDRAM: 720p at most.
         if (!"nativo".equals(get(context, RENDERER.key)) && (size.equals("1600x900") || size.equals("1920x1080"))) {
             size = "1280x720";
@@ -127,7 +134,8 @@ final class GameOptions {
         args.add("--log_level=" + (detailed || nativeRenderer ? "info" : "warn"));
         args.add("--carbon_perf_csv=" + detailed);
         for (Option option : ALL) if (option.cvar != null) {
-            String value = "resolution".equals(option.key) ? size : get(context, option.key);
+            String value = "resolution".equals(option.key) ? size
+                    : "single_pass".equals(option.key) ? Boolean.toString(singlePass) : get(context, option.key);
             if ("vsync".equals(option.key) && "unlimited".equals(fps)) value = "false";
             args.add("--" + option.cvar + "=" + value);
         }

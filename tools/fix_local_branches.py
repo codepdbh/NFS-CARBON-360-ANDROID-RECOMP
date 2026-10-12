@@ -2,6 +2,9 @@
 
 The original branch condition and PPC destination are preserved. Missing labels
 remain fatal and are reported, so this cannot silently skip unknown game code.
+The same applies to the cases of a jump table (bctr switch): a case whose target
+already has a label in the function jumps there instead of aborting (one of them
+closed the game at the first rival's cutscene, 0x827BFBEC in sub_827BF7C0).
 """
 
 import re
@@ -12,6 +15,9 @@ FUNCTION = re.compile(r"(?m)^DEFINE_REX_FUNC\(")
 FATAL = re.compile(
     r'(?m)^(\tif \([^\n]+?\)) REX_FATAL\("Unresolved branch from '
     r'0x([0-9A-F]{8}) to 0x([0-9A-F]{8})"\);$')
+SWITCH = re.compile(
+    r'(?m)^(\t+)REX_FATAL\("Jump target 0x([0-9A-F]{8}) unresolved at bctr '
+    r'0x[0-9A-F]{8}"\);$')
 
 
 def main():
@@ -35,7 +41,16 @@ def main():
                 fixed += 1
                 return f"{condition} goto loc_{target};"
 
-            output.append(FATAL.sub(repair, body))
+            def repair_case(match):
+                nonlocal fixed, missing
+                indent, target = match.groups()
+                if target not in labels:
+                    missing += 1
+                    return match[0]
+                fixed += 1
+                return f"{indent}goto loc_{target};"
+
+            output.append(SWITCH.sub(repair_case, FATAL.sub(repair, body)))
         result = "".join(output)
         if result != original:
             path.write_text(result, encoding="utf-8")
