@@ -1,0 +1,32 @@
+{
+  "$schema": "https://recomp.fyi/schema/v1.json",
+  "game": "Need for Speed: Carbon",
+  "system": "Xbox 360",
+  "type": "recomp",
+  "project": "NFS Carbon 360 Android Recomp",
+  "status": "released",
+  "targets": [
+    "Android",
+    "Windows"
+  ],
+  "approach": "Static PowerPC-to-C++ recompilation with ReXGlue; Vulkan on Android and Direct3D 12 on Windows.",
+  "maintainers": [
+    {
+      "name": "codepdbh",
+      "link": "https://github.com/codepdbh"
+    }
+  ],
+  "notes": "Public Android ARM64 builds render cars, scenery, videos and menus. Occasional hitches remain; full-race, save-progress and wider device validation are still pending. Separate from the PC edition port.",
+  "toolchain": "Rexglue",
+  "links": [
+    {
+      "label": "Upstream project",
+      "url": "https://github.com/rexglue/rexglue-sdk"
+    }
+  ],
+  "original": {
+    "region": "PAL",
+    "revision": "0.0.0.11",
+    "serial": "454107EC"
+  }
+}
