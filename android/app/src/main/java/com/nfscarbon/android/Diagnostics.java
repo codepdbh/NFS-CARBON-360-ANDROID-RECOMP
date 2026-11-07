@@ -54,7 +54,7 @@ final class Diagnostics {
         if (GpuDrivers.selected(context) == null) return gpu();
         JSONObject unknown = new JSONObject();
         try { unknown.put("requestedDriver", GpuDrivers.selected(context).name)
-                .put("probeError", "Driver seleccionado pendiente de probar"); } catch (Exception ignored) { }
+                .put("probeError", T.t("Driver seleccionado pendiente de probar")); } catch (Exception ignored) { }
         return unknown;
     }
 
@@ -76,11 +76,11 @@ final class Diagnostics {
     static String incompatibility(Context context) {
         JSONObject result = gpu(context);
         if (result.optBoolean("compatible", true)) return null;
-        StringBuilder message = new StringBuilder("El controlador de ")
-                .append(result.optString("gpu", "esta GPU"))
-                .append(" no ofrece las funciones que necesita el renderizador nativo.");
-        message.append("\n\nVulkan del dispositivo: ").append(result.optString("vulkan", "no disponible"));
-        message.append("\n\nBajar la resolución no resuelve esta incompatibilidad. Puedes enviar el diagnóstico para ayudarnos a estudiar soporte.");
+        StringBuilder message = new StringBuilder(T.t("El controlador de "))
+                .append(result.optString("gpu", T.t("esta GPU")))
+                .append(T.t(" no ofrece las funciones que necesita el renderizador nativo."));
+        message.append(T.t("\n\nVulkan del dispositivo: ")).append(result.optString("vulkan", T.t("no disponible")));
+        message.append(T.t("\n\nBajar la resolución no resuelve esta incompatibilidad. Puedes enviar el diagnóstico para ayudarnos a estudiar soporte."));
         return message.toString();
     }
 
@@ -89,11 +89,11 @@ final class Diagnostics {
         try { version = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName; }
         catch (Exception ignored) { }
         JSONObject device = gpu(context);
-        return "NFS Carbon 360 " + version + "\nTeléfono: " + Build.MANUFACTURER + " " + Build.MODEL
+        return "NFS Carbon 360 " + version + T.t("\nTeléfono: ") + Build.MANUFACTURER + " " + Build.MODEL
                 + "\nAndroid: " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")"
-                + "\nGPU: " + device.optString("gpu", "no disponible")
-                + "\nVulkan: " + device.optString("vulkan", "no disponible")
-                + "\nDriver seleccionado: " + (GpuDrivers.selected(context) == null ? "Sistema" : GpuDrivers.selected(context).name) + "\n";
+                + "\nGPU: " + device.optString("gpu", T.t("no disponible"))
+                + "\nVulkan: " + device.optString("vulkan", T.t("no disponible"))
+                + T.t("\nDriver seleccionado: ") + (GpuDrivers.selected(context) == null ? T.t("Sistema") : GpuDrivers.selected(context).name) + "\n";
     }
 
     static void recordLaunch(Context context) {
@@ -103,7 +103,7 @@ final class Diagnostics {
 
     static File createReport(Context context) throws Exception {
         File directory = new File(context.getCacheDir(), "reports");
-        if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("No se pudo crear el informe.");
+        if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException(T.t("No se pudo crear el informe."));
         // Leave recent attachments available while a mail app or document picker
         // still reads them. Remove only reports older than seven days.
         File[] old = directory.listFiles();
@@ -117,14 +117,14 @@ final class Diagnostics {
             ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
             if (manager != null) manager.getMemoryInfo(memory);
             StringBuilder info = new StringBuilder(summary(context));
-            info.append("Fecha: ").append(new Date()).append("\nABI: ").append(Arrays.toString(Build.SUPPORTED_ABIS))
-                    .append("\nRAM total: ").append(memory.totalMem).append("\nRAM disponible: ").append(memory.availMem)
-                    .append("\nÚltimo intento de iniciar: ").append(context.getSharedPreferences("nfscarbon_diagnostics", 0)
+            info.append(T.t("Fecha: ")).append(new Date()).append("\nABI: ").append(Arrays.toString(Build.SUPPORTED_ABIS))
+                    .append(T.t("\nRAM total: ")).append(memory.totalMem).append(T.t("\nRAM disponible: ")).append(memory.availMem)
+                    .append(T.t("\nÚltimo intento de iniciar: ")).append(context.getSharedPreferences("nfscarbon_diagnostics", 0)
                             .getLong("last_launch_ms", 0)).append("\n\nOpciones:\n");
             for (GameOptions.Option option : GameOptions.ALL) info.append(option.key).append('=').append(GameOptions.get(context, option.key)).append('\n');
-            info.append("\nArgumentos efectivos:\n");
+            info.append(T.t("\nArgumentos efectivos:\n"));
             for (String argument : GameOptions.arguments(context)) info.append(argument).append('\n');
-            info.append("\nDescribe qué ocurrió, cómo reproducirlo y la edición del juego.\n");
+            info.append(T.t("\nDescribe qué ocurrió, cómo reproducirlo y la edición del juego.\n"));
             add(zip, "informe.txt", info.toString().getBytes(StandardCharsets.UTF_8));
             add(zip, "gpu.json", gpu(context).toString(2).getBytes(StandardCharsets.UTF_8));
             addFile(zip, "last-java-crash.txt", new File(context.getFilesDir(), "last-java-crash.txt"));
@@ -165,7 +165,7 @@ final class Diagnostics {
             output.write(bytes);
             if (size > head) {
                 int tail = (int) Math.min(size - head, LIMIT / 2);
-                if (size > LIMIT) output.write("\n[... registro recortado: inicio y final ...]\n".getBytes(StandardCharsets.UTF_8));
+                if (size > LIMIT) output.write(T.t("\n[... registro recortado: inicio y final ...]\n").getBytes(StandardCharsets.UTF_8));
                 input.seek(size - tail);
                 bytes = new byte[tail];
                 input.readFully(bytes);
@@ -224,7 +224,7 @@ final class Diagnostics {
             }
             add(zip, "process-exits.txt", info.toString().getBytes(StandardCharsets.UTF_8));
         } catch (RuntimeException error) {
-            Log.w("NFSCARBON", "Historial de cierres no disponible", error);
+            Log.w("NFSCARBON", T.t("Historial de cierres no disponible"), error);
             add(zip, "process-exits.txt", error.toString().getBytes(StandardCharsets.UTF_8));
         }
     }

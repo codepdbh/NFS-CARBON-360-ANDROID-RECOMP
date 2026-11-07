@@ -115,7 +115,7 @@ final class ShaderBuilder {
 
             @Override
             public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
-                finish(null, "el compilador de shaders se cerró (memoria insuficiente)");
+                finish(null, T.t("el compilador de shaders se cerró (memoria insuficiente)"));
                 return true;
             }
         });
@@ -244,7 +244,7 @@ final class ShaderBuilder {
                     out.getFD().sync();
                 }
                 if (!temp.renameTo(target)) {
-                    throw new IOException("no se pudo guardar " + LIBRARY);
+                    throw new IOException(T.t("no se pudo guardar ") + LIBRARY);
                 }
                 try (FileOutputStream out = new FileOutputStream(new File(output, VERSION_FILE))) {
                     out.write(LIBRARY_VERSION.getBytes("UTF-8"));
