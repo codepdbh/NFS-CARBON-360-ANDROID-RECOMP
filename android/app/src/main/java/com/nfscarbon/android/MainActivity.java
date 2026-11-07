@@ -96,15 +96,15 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams fileParams = new LinearLayout.LayoutParams(-1, 0, 1);
         fileParams.topMargin = dp(12);
         left.addView(filesScroll, fileParams);
-        files.addView(label("ARCHIVOS DEL JUEGO", 12, ACCENT, true));
-        status = label("Comprobando archivos…", 13, 0xFFCAD2DD, false);
+        files.addView(label(T.t("ARCHIVOS DEL JUEGO"), 12, ACCENT, true));
+        status = label(T.t("Comprobando archivos…"), 13, 0xFFCAD2DD, false);
         status.setPadding(0, dp(6), 0, dp(8));
         files.addView(status);
         checks = new LinearLayout(this);
         checks.setOrientation(LinearLayout.HORIZONTAL);
         files.addView(checks);
 
-        play = action("JUGAR", true, this::play);
+        play = action(T.t("JUGAR"), true, this::play);
         LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(-1, dp(56));
         playParams.topMargin = dp(12);
         left.addView(play, playParams);
@@ -112,13 +112,13 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
         actionParams.topMargin = dp(10);
         left.addView(fileActions, actionParams);
-        accessButton = action("Permitir acceso", false, this::permission);
+        accessButton = action(T.t("Permitir acceso"), false, this::permission);
         fileActions.addView(accessButton, new LinearLayout.LayoutParams(0, -1, 1));
-        importButton = action("Importar mi copia", false, this::importGame);
+        importButton = action(T.t("Importar mi copia"), false, this::importGame);
         LinearLayout.LayoutParams importParams = new LinearLayout.LayoutParams(0, -1, 1);
         importParams.leftMargin = dp(8);
         fileActions.addView(importButton, importParams);
-        TextView note = label("Memoria interna/NFSCARBON", 11, 0xFF96A1B1, false);
+        TextView note = label(T.t("Memoria interna/NFSCARBON"), 11, 0xFF96A1B1, false);
         note.setPadding(dp(2), dp(6), 0, 0);
         left.addView(note);
 
@@ -126,8 +126,8 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -1, 1);
         rightParams.leftMargin = dp(22);
         columns.addView(right, rightParams);
-        right.addView(label("AJUSTES DEL JUEGO", 12, ACCENT, true));
-        TextView nextSession = label("Se aplican al pulsar Jugar. Con antialiasing Original se usa 1280×720. Los FPS altos y Sin límite son experimentales.", 12, 0xFF96A1B1, false);
+        right.addView(label(T.t("AJUSTES DEL JUEGO"), 12, ACCENT, true));
+        TextView nextSession = label(T.t("Se aplican al pulsar Jugar. Con antialiasing Original se usa 1280×720. Los FPS altos y Sin límite son experimentales."), 12, 0xFF96A1B1, false);
         nextSession.setPadding(0, dp(3), 0, dp(5));
         right.addView(nextSession);
         ScrollView optionsScroll = new ScrollView(this);
@@ -135,11 +135,11 @@ public final class MainActivity extends Activity {
         optionsList.setOrientation(LinearLayout.VERTICAL);
         optionsScroll.addView(optionsList);
         right.addView(optionsScroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        TextView languageNote = label("Los idiomas y las voces dependen de tu copia.", 11, 0xFF96A1B1, false);
+        TextView languageNote = label(T.t("Los idiomas y las voces dependen de tu copia."), 11, 0xFF96A1B1, false);
         languageNote.setPadding(0, dp(6), 0, dp(8));
         right.addView(languageNote);
         LinearLayout reports = new LinearLayout(this);
-        reports.addView(action("Enviar crash o log", false, this::report),
+        reports.addView(action(T.t("Enviar crash o log"), false, this::report),
                 new LinearLayout.LayoutParams(0, dp(46), 1.5f));
         LinearLayout.LayoutParams githubParams = new LinearLayout.LayoutParams(0, dp(46), 1);
         githubParams.leftMargin = dp(8);
@@ -153,13 +153,13 @@ public final class MainActivity extends Activity {
     private void importGame() {
         if (busy) return;
         if (!storageAllowed()) { permission(); return; }
-        new AlertDialog.Builder(this).setTitle("Importar Carbon")
-            .setMessage("Se copiarán los archivos a NFSCARBON. Necesitas unos 6 GB libres. "
-                    + "La copia existente quedará como respaldo y ocupará espacio adicional.")
-            .setPositiveButton("Elegir carpeta", (dialog, which) -> startActivityForResult(
+        new AlertDialog.Builder(this).setTitle(T.t("Importar Carbon"))
+            .setMessage(T.t("Se copiarán los archivos a NFSCARBON. Necesitas unos 6 GB libres. ")
+                    + T.t("La copia existente quedará como respaldo y ocupará espacio adicional."))
+            .setPositiveButton(T.t("Elegir carpeta"), (dialog, which) -> startActivityForResult(
                 new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), IMPORT))
-            .setNegativeButton("Cancelar", null).show();
+            .setNegativeButton(T.t("Cancelar"), null).show();
     }
 
     @Override public void onResume() {
@@ -184,7 +184,7 @@ public final class MainActivity extends Activity {
     }
     private void reportError(String message) {
         new AlertDialog.Builder(this).setTitle("NFS Carbon")
-                .setMessage(message).setPositiveButton("Aceptar", null).show();
+                .setMessage(message).setPositiveButton(T.t("Aceptar"), null).show();
     }
 
     private void checkUpdates(boolean manual) {
@@ -208,23 +208,23 @@ public final class MainActivity extends Activity {
         }
         if (!ReleaseVersion.newer(result.tag, ReleaseUpdates.installed(this))) {
             if (manual) new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle("Actualizaciones").setMessage("Tienes la versión " + ReleaseUpdates.installed(this)
-                            + ". No hay una versión estable más reciente en GitHub.")
-                    .setPositiveButton("Aceptar", null).show();
+                    .setTitle(T.t("Actualizaciones")).setMessage(T.t("Tienes la versión ") + ReleaseUpdates.installed(this)
+                            + T.t(". No hay una versión estable más reciente en GitHub."))
+                    .setPositiveButton(T.t("Aceptar"), null).show();
             return;
         }
         android.content.SharedPreferences updates = ReleaseUpdates.prefs(this);
         if (!manual && result.tag.equals(updates.getString("notified_tag", ""))) return;
         updates.edit().putString("notified_tag", result.tag).apply();
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Nueva versión disponible: " + result.tag)
-                .setMessage("Puedes actualizar desde GitHub o seguir jugando con esta versión. Instala el APK "
-                        + "encima del anterior para conservar tus partidas y ajustes.")
-                .setPositiveButton("Actualizar", (dialog, which) -> {
+                .setTitle(T.t("Nueva versión disponible: ") + result.tag)
+                .setMessage(T.t("Puedes actualizar desde GitHub o seguir jugando con esta versión. Instala el APK ")
+                        + T.t("encima del anterior para conservar tus partidas y ajustes."))
+                .setPositiveButton(T.t("Actualizar"), (dialog, which) -> {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(result.url))); }
-                    catch (ActivityNotFoundException error) { reportError("No se encontró una app para abrir GitHub."); }
+                    catch (ActivityNotFoundException error) { reportError(T.t("No se encontró una app para abrir GitHub.")); }
                 })
-                .setNegativeButton("Más tarde", null).show();
+                .setNegativeButton(T.t("Más tarde"), null).show();
     }
 
     private LinearLayout card() {
@@ -270,10 +270,10 @@ public final class MainActivity extends Activity {
         if (optionsList == null) return;
         optionsList.removeAllViews();
         GpuDrivers.Driver driver = GpuDrivers.selected(this);
-        optionsList.addView(optionRow("Driver Vulkan", driver == null ? "Del sistema" : driver.name, this::chooseDriver));
-        optionsList.addView(optionRow("Probar driver", "Comprobar GPU y Vulkan", () -> probeDriver(false)));
-        optionsList.addView(optionRow("Buscar actualizaciones", checkingUpdates ? "Comprobando GitHub…"
-                : "Versión " + ReleaseUpdates.installed(this), () -> checkUpdates(true)));
+        optionsList.addView(optionRow(T.t("Driver Vulkan"), driver == null ? T.t("Del sistema") : driver.name, this::chooseDriver));
+        optionsList.addView(optionRow(T.t("Probar driver"), T.t("Comprobar GPU y Vulkan"), () -> probeDriver(false)));
+        optionsList.addView(optionRow(T.t("Buscar actualizaciones"), checkingUpdates ? T.t("Comprobando GitHub…")
+                : T.t("Versión ") + ReleaseUpdates.installed(this), () -> checkUpdates(true)));
         for (GameOptions.Option option : GameOptions.ALL)
             optionsList.addView(optionRow(option.title, option.label(GameOptions.get(this, option.key)), () -> chooseOption(option)));
     }
@@ -299,30 +299,30 @@ public final class MainActivity extends Activity {
     private void chooseDriver() {
         java.util.List<GpuDrivers.Driver> drivers = GpuDrivers.list(this);
         String[] names = new String[drivers.size() + 1];
-        names[0] = "Driver del sistema";
+        names[0] = T.t("Driver del sistema");
         int selected = 0;
         for (int i = 0; i < drivers.size(); ++i) {
             names[i + 1] = drivers.get(i).name;
             if (drivers.get(i).id.equals(GpuDrivers.selectedId(this))) selected = i + 1;
         }
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Driver Vulkan")
+                .setTitle(T.t("Driver Vulkan"))
                 .setSingleChoiceItems(names, selected, (dialog, which) -> {
                     GpuDrivers.select(this, which == 0 ? "" : drivers.get(which - 1).id);
                     refreshOptions(); dialog.dismiss();
                 })
-                .setPositiveButton("Importar ZIP", (dialog, which) -> {
+                .setPositiveButton(T.t("Importar ZIP"), (dialog, which) -> {
                     Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
                             .addCategory(Intent.CATEGORY_OPENABLE);
                     startActivityForResult(picker, REQUEST_DRIVER_ZIP);
                 })
-                .setNeutralButton("Eliminar seleccionado", (dialog, which) -> {
+                .setNeutralButton(T.t("Eliminar seleccionado"), (dialog, which) -> {
                     GpuDrivers.Driver driver = GpuDrivers.selected(this);
                     if (driver == null) return;
                     try { GpuDrivers.remove(this, driver); refreshOptions(); }
                     catch (IOException error) { reportError(error.getMessage()); }
                 })
-                .setNegativeButton("Volver", null).show();
+                .setNegativeButton(T.t("Volver"), null).show();
     }
 
     private void probeDriver(boolean playAfter) {
@@ -338,21 +338,21 @@ public final class MainActivity extends Activity {
             Diagnostics.acceptGpu(this, report);
             org.json.JSONObject gpu = new org.json.JSONObject(report);
             boolean failed = gpu.optBoolean("driverLoadFailed") || gpu.has("probeError");
-            String text = "GPU: " + gpu.optString("gpu", "no disponible")
-                    + "\nVulkan: " + gpu.optString("vulkan", "no disponible")
-                    + "\nConjuntos de descriptores: " + gpu.optInt("maxBoundDescriptorSets")
-                    + "\n" + (gpu.optBoolean("compatible") ? "Funciones del renderizador nativo disponibles."
-                            : "Funciones faltantes: " + gpu.optJSONArray("missing"));
-            if (failed) text = "No se pudo probar el driver. " + gpu.optString("probeError", "Error al cargar Vulkan.");
+            String text = "GPU: " + gpu.optString("gpu", T.t("no disponible"))
+                    + "\nVulkan: " + gpu.optString("vulkan", T.t("no disponible"))
+                    + T.t("\nConjuntos de descriptores: ") + gpu.optInt("maxBoundDescriptorSets")
+                    + "\n" + (gpu.optBoolean("compatible") ? T.t("Funciones del renderizador nativo disponibles.")
+                            : T.t("Funciones faltantes: ") + gpu.optJSONArray("missing"));
+            if (failed) text = T.t("No se pudo probar el driver. ") + gpu.optString("probeError", T.t("Error al cargar Vulkan."));
             if (playAfterProbe && !failed && (!"nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key)) || gpu.optBoolean("compatible"))) { playAfterProbe = false; playChecked(); return; }
             playAfterProbe = false;
             new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle("Prueba del driver Vulkan").setMessage(text)
-                    .setPositiveButton("Aceptar", null)
-                    .setNeutralButton("Usar sistema", (dialog, which) -> {
+                    .setTitle(T.t("Prueba del driver Vulkan")).setMessage(text)
+                    .setPositiveButton(T.t("Aceptar"), null)
+                    .setNeutralButton(T.t("Usar sistema"), (dialog, which) -> {
                         GpuDrivers.select(this, ""); refreshOptions();
                     }).show();
-        } catch (Exception error) { playAfterProbe = false; reportError("Diagnóstico no válido: " + error.getMessage()); }
+        } catch (Exception error) { playAfterProbe = false; reportError(T.t("Diagnóstico no válido: ") + error.getMessage()); }
     }
 
     private void chooseOption(GameOptions.Option option) {
@@ -362,8 +362,9 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this).setTitle(option.title)
             .setSingleChoiceItems(option.labels, selected, (choice, value) -> {
                 GameOptions.set(this, option.key, option.values[value]);
+                if (T.KEY.equals(option.key)) { T.restart(this); return; }
                 refreshOptions(); choice.dismiss();
-            }).setNegativeButton("Cerrar", null).show();
+            }).setNegativeButton(T.t("Cerrar"), null).show();
     }
 
     private void showChecks() {
@@ -404,9 +405,9 @@ public final class MainActivity extends Activity {
         play.setAlpha(ready ? 1f : .45f);
         accessButton.setVisibility(storageAllowed() ? View.GONE : View.VISIBLE);
         showChecks();
-        status.setText(!storageAllowed() ? "Permite el acceso a tu copia."
-                : ready ? "Tu copia está lista para iniciar."
-                : "Importa tu copia extraída de Xbox 360.");
+        status.setText(!storageAllowed() ? T.t("Permite el acceso a tu copia.")
+                : ready ? T.t("Tu copia está lista para iniciar.")
+                : T.t("Importa tu copia extraída de Xbox 360."));
     }
     private void play() {
         if (busy || !storageAllowed() || !valid(gameRoot())) { refresh(); return; }
@@ -416,7 +417,7 @@ public final class MainActivity extends Activity {
         } else playChecked();
     }
     private void playChecked() {
-        busy = true; play.setEnabled(false); status.setText("Comprobando la edición del ejecutable…");
+        busy = true; play.setEnabled(false); status.setText(T.t("Comprobando la edición del ejecutable…"));
         new Thread(() -> {
             try {
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -427,7 +428,7 @@ public final class MainActivity extends Activity {
                 StringBuilder hash = new StringBuilder();
                 for (byte value : digest.digest()) hash.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
                 if (!EXPECTED_XEX.equals(hash.toString())) throw new IOException(
-                        "Esta edición de default.xex no coincide con la recompilada. Usa la copia Xbox 360 indicada en el README.");
+                        T.t("Esta edición de default.xex no coincide con la recompilada. Usa la copia Xbox 360 indicada en el README."));
                 runOnUiThread(() -> {
                     busy = false;
                     if ("nativo".equals(GameOptions.get(this, GameOptions.RENDERER.key))
@@ -448,7 +449,7 @@ public final class MainActivity extends Activity {
     private void buildShaders() {
         if (shaderBuilder != null) return;
         busy = true; play.setEnabled(false); play.setAlpha(.45f);
-        status.setText("Generando los shaders del renderizador nativo (solo la primera vez)…");
+        status.setText(T.t("Generando los shaders del renderizador nativo (solo la primera vez)…"));
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         shaderBuilder = new ShaderBuilder(this, gameRoot(), shaderFolder(), new ShaderBuilder.Listener() {
             @Override public void onProgress(float fraction, String text) {
@@ -462,7 +463,7 @@ public final class MainActivity extends Activity {
             @Override public void onError(String message) {
                 shadersFinished();
                 refresh();
-                status.setText("No se pudieron generar los shaders: " + message);
+                status.setText(T.t("No se pudieron generar los shaders: ") + message);
             }
         });
         shaderBuilder.start();
@@ -479,21 +480,21 @@ public final class MainActivity extends Activity {
             busy = false;
             refresh();
             showDriverReport(result == RESULT_OK && data != null ? data.getStringExtra("gpu_report")
-                    : "{\"probeError\":\"La prueba se cerró o fue cancelada. Puedes volver al driver del sistema.\",\"driverLoadFailed\":true}");
+                    : T.t("{\"probeError\":\"La prueba se cerró o fue cancelada. Puedes volver al driver del sistema.\",\"driverLoadFailed\":true}"));
             return;
         }
         if (request == REQUEST_DRIVER_ZIP) {
             if (result != RESULT_OK || data == null || data.getData() == null) return;
             Uri zip = data.getData();
             busy = true; play.setEnabled(false);
-            status.setText("Importando driver Vulkan…");
+            status.setText(T.t("Importando driver Vulkan…"));
             new Thread(() -> {
                 try {
                     GpuDrivers.Driver driver = GpuDrivers.importZip(this, zip);
                     runOnUiThread(() -> {
                         if (isFinishing() || isDestroyed()) return;
                         busy = false; GpuDrivers.select(this, driver.id); refreshOptions(); refresh();
-                        status.setText("Driver importado: " + driver.name + ". Usa Probar driver para comprobarlo.");
+                        status.setText(T.t("Driver importado: ") + driver.name + T.t(". Usa Probar driver para comprobarlo."));
                     });
                 } catch (Exception error) { failed(error); }
             }, "CarbonDriverImport").start();
@@ -501,25 +502,25 @@ public final class MainActivity extends Activity {
         }
         if (request != IMPORT || result != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData(); busy = true; play.setEnabled(false); importButton.setEnabled(false);
-        status.setText("Copiando tu juego. Deja abierta esta pantalla…");
+        status.setText(T.t("Copiando tu juego. Deja abierta esta pantalla…"));
         new Thread(() -> {
             File staging = new File(Environment.getExternalStorageDirectory(), GAME_FOLDER_NAME + "-import-" + System.currentTimeMillis());
             try {
                 DocumentFile source = DocumentFile.fromTreeUri(this, uri);
-                if (source == null || !source.isDirectory()) throw new IOException("La carpeta no se puede abrir.");
+                if (source == null || !source.isDirectory()) throw new IOException(T.t("La carpeta no se puede abrir."));
                 if (source.findFile("default.xex") == null || source.findFile("NFS") == null
                         || (source.findFile("Movies") == null && source.findFile("MOVIES") == null))
-                    throw new IOException("Elige la carpeta del juego que contiene default.xex, NFS y Movies.");
-                if (!staging.mkdirs()) throw new IOException("No se pudo crear la carpeta de importación.");
+                    throw new IOException(T.t("Elige la carpeta del juego que contiene default.xex, NFS y Movies."));
+                if (!staging.mkdirs()) throw new IOException(T.t("No se pudo crear la carpeta de importación."));
                 copy(source, staging);
-                if (!valid(staging)) throw new IOException("La carpeta debe contener default.xex, NFS y Movies.");
+                if (!valid(staging)) throw new IOException(T.t("La carpeta debe contener default.xex, NFS y Movies."));
                 File target = gameRoot();
                 File backup = new File(target.getParentFile(), GAME_FOLDER_NAME + "-backup-" + System.currentTimeMillis());
                 boolean backedUp = target.exists();
-                if (backedUp && !target.renameTo(backup)) throw new IOException("No se pudo guardar la copia anterior.");
+                if (backedUp && !target.renameTo(backup)) throw new IOException(T.t("No se pudo guardar la copia anterior."));
                 if (!staging.renameTo(target)) {
                     if (backedUp) backup.renameTo(target);
-                    throw new IOException("No se pudo instalar la carpeta copiada.");
+                    throw new IOException(T.t("No se pudo instalar la carpeta copiada."));
                 }
                 runOnUiThread(() -> { busy = false; importButton.setEnabled(true); refresh(); });
             } catch (Exception error) { failed(error); }
@@ -529,15 +530,15 @@ public final class MainActivity extends Activity {
         for (DocumentFile child : source.listFiles()) {
             String name = child.getName();
             if (name == null || name.equals(".") || name.equals("..") || name.contains("/") || name.contains("\\"))
-                throw new IOException("Nombre de archivo inválido.");
+                throw new IOException(T.t("Nombre de archivo inválido."));
             File destination = new File(target, name);
             if (child.isDirectory()) {
-                if (!destination.mkdir()) throw new IOException("No se pudo crear " + name);
+                if (!destination.mkdir()) throw new IOException(T.t("No se pudo crear ") + name);
                 copy(child, destination);
             } else {
                 try (InputStream input = getContentResolver().openInputStream(child.getUri());
                         FileOutputStream output = new FileOutputStream(destination)) {
-                    if (input == null) throw new IOException("No se pudo leer " + name);
+                    if (input == null) throw new IOException(T.t("No se pudo leer ") + name);
                     byte[] buffer = new byte[1024 * 1024];
                     for (int count; (count = input.read(buffer)) != -1;) output.write(buffer, 0, count);
                 }
@@ -546,7 +547,7 @@ public final class MainActivity extends Activity {
     }
     private void report() {
         if (busy) return;
-        busy = true; status.setText("Preparando registro y diagnóstico…");
+        busy = true; status.setText(T.t("Preparando registro y diagnóstico…"));
         new Thread(() -> {
             try {
                 File report = Diagnostics.createReport(this);
@@ -555,11 +556,11 @@ public final class MainActivity extends Activity {
                     Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".reports", report);
                     Intent email = new Intent(Intent.ACTION_SEND).setType("application/zip")
                         .putExtra(Intent.EXTRA_EMAIL, new String[]{Diagnostics.EMAIL})
-                        .putExtra(Intent.EXTRA_SUBJECT, "NFS Carbon 360: diagnóstico de " + Build.MODEL)
-                        .putExtra(Intent.EXTRA_TEXT, Diagnostics.summary(this) + "\nDescribe aquí lo que ocurrió.\n")
+                        .putExtra(Intent.EXTRA_SUBJECT, T.t("NFS Carbon 360: diagnóstico de ") + Build.MODEL)
+                        .putExtra(Intent.EXTRA_TEXT, Diagnostics.summary(this) + T.t("\nDescribe aquí lo que ocurrió.\n"))
                         .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    email.setClipData(ClipData.newUri(getContentResolver(), "Diagnóstico Carbon", uri));
-                    try { startActivity(Intent.createChooser(email, "Enviar registro")); }
+                    email.setClipData(ClipData.newUri(getContentResolver(), T.t("Diagnóstico Carbon"), uri));
+                    try { startActivity(Intent.createChooser(email, T.t("Enviar registro"))); }
                     catch (Exception error) { failed(error); }
                 });
             } catch (Exception error) { failed(error); }

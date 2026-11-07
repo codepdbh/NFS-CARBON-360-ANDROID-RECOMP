@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 public final class DiagnosticsApplication extends Application {
     @Override public void onCreate() {
         super.onCreate();
+        T.init(this);
         Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
             try (PrintWriter writer = new PrintWriter(new File(getFilesDir(), "last-java-crash.txt"), "UTF-8")) {

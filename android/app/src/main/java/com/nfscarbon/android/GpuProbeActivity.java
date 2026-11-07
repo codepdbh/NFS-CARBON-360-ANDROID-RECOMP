@@ -15,21 +15,21 @@ public final class GpuProbeActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         TextView status = new TextView(this);
-        status.setText("Comprobando el driver Vulkan…");
+        status.setText(T.t("Comprobando el driver Vulkan…"));
         status.setTextColor(0xFFFFFFFF); status.setTextSize(18);
         status.setGravity(android.view.Gravity.CENTER); status.setBackgroundColor(0xFF0B0F14);
         setContentView(status);
         Handler main = new Handler(Looper.getMainLooper());
         main.postDelayed(() -> {
             if (!finished) {
-                finishReport("{\"probeError\":\"La prueba del driver excedió 20 segundos\",\"driverLoadFailed\":true}");
+                finishReport(T.t("{\"probeError\":\"La prueba del driver excedió 20 segundos\",\"driverLoadFailed\":true}"));
             }
         }, 20000);
         new Thread(() -> {
             String result;
             try { result = Diagnostics.probeSelectedDriver(this); }
             catch (Exception | LinkageError error) {
-                result = "{\"probeError\":\"No se pudo cargar la biblioteca de diagnóstico\",\"driverLoadFailed\":true}";
+                result = T.t("{\"probeError\":\"No se pudo cargar la biblioteca de diagnóstico\",\"driverLoadFailed\":true}");
             }
             String report = result;
             main.post(() -> finishReport(report));

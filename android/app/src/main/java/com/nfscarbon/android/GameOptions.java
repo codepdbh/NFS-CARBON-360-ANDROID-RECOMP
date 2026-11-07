@@ -20,16 +20,16 @@ final class GameOptions {
         }
     }
     // Xbox 360 language IDs, mapped to Carbon's startup resource IDs by its hook.
-    static final Option LANGUAGE = new Option("language", "Idioma del juego", "carbon_text_language", "1",
+    static final Option LANGUAGE = new Option("language", T.t("Idioma del juego"), "carbon_text_language", "1",
         new String[]{"1", "5", "4", "3", "6"},
-        new String[]{"Inglés", "Español", "Français", "Deutsch", "Italiano"});
+        new String[]{T.t("Inglés"), "Español", "Français", "Deutsch", "Italiano"});
     // The native renderer of NFSMW Android Evolved (docs/renderizador-nativo.md) instead of Xenos emulation.
-    static final Option RENDERER = new Option("renderer", "Renderizador", "nfsmw_renderizador", "nativo",
+    static final Option RENDERER = new Option("renderer", T.t("Renderizador"), "nfsmw_renderizador", "nativo",
         new String[]{"nativo", "xenos"},
-        new String[]{"Nativo · experimental, más rápido", "Xenos · emulación"});
+        new String[]{T.t("Nativo · experimental, más rápido"), T.t("Xenos · emulación")});
     // Most Wanted's measured shortcuts in the native renderer, still to be validated in Carbon.
-    static final Option NATIVE_SHORTCUTS = new Option("native_shortcuts", "Atajos del renderizador (MW)", null,
-        "off", new String[]{"off", "on"}, new String[]{"Desactivados · más fiel", "Activados · experimental"});
+    static final Option NATIVE_SHORTCUTS = new Option("native_shortcuts", T.t("Atajos del renderizador (MW)"), null,
+        "off", new String[]{"off", "on"}, new String[]{T.t("Desactivados · más fiel"), T.t("Activados · experimental")});
     static final String[] MW_SHORTCUT_CVARS = {
         "nfsmw_sombras_sin_vegetacion", "nfsmw_nativo_dedupe_vertices", "nfsmw_nativo_resolver_sin_copia",
         "nfsmw_nativo_intercambiar_sin_borrado", "nfsmw_nativo_saltar_borrados_repetidos",
@@ -40,38 +40,41 @@ final class GameOptions {
         "nfsmw_nativo_sombra_minimo", "nfsmw_nativo_saltar_invisibles", "nfsmw_nativo_resolver_contenido_valido",
     };
     // Voices, race intros and videos: the console language. The PAL English disc only has them in English.
-    static final Option VOICES = new Option("voices", "Idioma de las voces", null, "english",
-        new String[]{"english", "text"}, new String[]{"Inglés · copias PAL inglesas", "Igual que los textos · copias dobladas"});
+    static final Option VOICES = new Option("voices", T.t("Idioma de las voces"), null, "english",
+        new String[]{"english", "text"}, new String[]{T.t("Inglés · copias PAL inglesas"), T.t("Igual que los textos · copias dobladas")});
+    static final Option UI_LANGUAGE = new Option(T.KEY, T.t("Idioma de la aplicación"), null, "system",
+        new String[]{"system", "es", "en"}, new String[]{T.t("Del sistema"), "Español", "English"});
     static final Option[] ALL = {
+        UI_LANGUAGE,
         RENDERER,
         NATIVE_SHORTCUTS,
         LANGUAGE,
         VOICES,
-        new Option("resolution", "Resolución interna", "carbon_resolution", "1024x576",
+        new Option("resolution", T.t("Resolución interna"), "carbon_resolution", "1024x576",
             new String[]{"640x360", "1024x576", "1280x720", "1600x900", "1920x1080"},
-            new String[]{"640×360 · rendimiento", "1024×576 · equilibrado", "1280×720 · calidad",
-                "1600×900 · solo renderizador nativo", "1920×1080 · solo renderizador nativo"}),
-        new Option("fps", "Ritmo objetivo (FPS)", null, "60",
+            new String[]{T.t("640×360 · rendimiento"), T.t("1024×576 · equilibrado"), T.t("1280×720 · calidad"),
+                T.t("1600×900 · solo renderizador nativo"), T.t("1920×1080 · solo renderizador nativo")}),
+        new Option("fps", T.t("Ritmo objetivo (FPS)"), null, "60",
             new String[]{"30", "60", "90", "120", "unlimited"},
-            new String[]{"30 FPS", "60 FPS", "90 FPS · experimental", "120 FPS · experimental", "Sin límite · experimental"}),
-        new Option("single_pass", "Antialiasing de la escena", "carbon_single_pass", "true",
-            new String[]{"true", "false"}, new String[]{"Desactivado · rendimiento", "Original · solo Xenos, más carga"}),
+            new String[]{"30 FPS", "60 FPS", "90 FPS · experimental", "120 FPS · experimental", T.t("Sin límite · experimental")}),
+        new Option("single_pass", T.t("Antialiasing de la escena"), "carbon_single_pass", "true",
+            new String[]{"true", "false"}, new String[]{T.t("Desactivado · rendimiento"), T.t("Original · solo Xenos, más carga")}),
         // SDL pump frames queued ahead (5.3 ms each): more of them ride over hitches without audio cuts, at the cost
         // of latency.
-        new Option("audio_buffer", "Búfer de audio", "audio_sdl_bomba_cola", "12",
-            new String[]{"12", "20"}, new String[]{"Normal · 64 ms", "Grande · 107 ms, si hay cortes"}),
-        new Option("vsync", "Sincronización vertical", "vsync", "true",
-            new String[]{"true", "false"}, new String[]{"Activada", "Desactivada"}),
-        new Option("async", "Compilación de shaders", "async_shader_compilation", "true",
-            new String[]{"false", "true"}, new String[]{"Completa · más pausas", "En segundo plano"}),
-        new Option("workers", "Trabajadores de shaders", "vulkan_pipeline_creation_threads", "2",
-            new String[]{"1", "2", "4", "-1"}, new String[]{"1", "2 · recomendado", "4", "Automático"}),
-        new Option("cpu", "CPU del juego", "carbon_fast_cores", "true",
-            new String[]{"true", "false"}, new String[]{"Preferir núcleos rápidos", "Sistema"}),
-        new Option("fps_overlay", "Contador de FPS", null, "true",
-            new String[]{"true", "false"}, new String[]{"Visible", "Oculto"}),
-        new Option("diagnostics", "Registros", null, "normal",
-            new String[]{"normal", "detailed"}, new String[]{"Solo avisos y errores", "Detallados + tiempos"}),
+        new Option("audio_buffer", T.t("Búfer de audio"), "audio_sdl_bomba_cola", "12",
+            new String[]{"12", "20"}, new String[]{"Normal · 64 ms", T.t("Grande · 107 ms, si hay cortes")}),
+        new Option("vsync", T.t("Sincronización vertical"), "vsync", "true",
+            new String[]{"true", "false"}, new String[]{T.t("Activada"), T.t("Desactivada")}),
+        new Option("async", T.t("Compilación de shaders"), "async_shader_compilation", "true",
+            new String[]{"false", "true"}, new String[]{T.t("Completa · más pausas"), T.t("En segundo plano")}),
+        new Option("workers", T.t("Trabajadores de shaders"), "vulkan_pipeline_creation_threads", "2",
+            new String[]{"1", "2", "4", "-1"}, new String[]{"1", T.t("2 · recomendado"), "4", T.t("Automático")}),
+        new Option("cpu", T.t("CPU del juego"), "carbon_fast_cores", "true",
+            new String[]{"true", "false"}, new String[]{T.t("Preferir núcleos rápidos"), T.t("Sistema")}),
+        new Option("fps_overlay", T.t("Contador de FPS"), null, "true",
+            new String[]{"true", "false"}, new String[]{"Visible", T.t("Oculto")}),
+        new Option("diagnostics", T.t("Registros"), null, "normal",
+            new String[]{"normal", "detailed"}, new String[]{T.t("Solo avisos y errores"), T.t("Detallados + tiempos")}),
     };
     static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences("nfscarbon_game", Context.MODE_PRIVATE);

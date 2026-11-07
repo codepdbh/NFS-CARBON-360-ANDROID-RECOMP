@@ -72,8 +72,8 @@ public final class GameActivity extends SDLActivity
             try {
                 long frameUs = nativeFrameTimeUs();
                 fpsLabel.setText(frameUs > 0 ? String.format(java.util.Locale.ROOT,
-                        "%.0f FPS · %.1f ms", 1000000.0 / frameUs, frameUs / 1000.0) : "FPS · cargando…");
-            } catch (UnsatisfiedLinkError ignored) { fpsLabel.setText("FPS · cargando…"); }
+                        "%.0f FPS · %.1f ms", 1000000.0 / frameUs, frameUs / 1000.0) : T.t("FPS · cargando…"));
+            } catch (UnsatisfiedLinkError ignored) { fpsLabel.setText(T.t("FPS · cargando…")); }
             frameHandler.postDelayed(this, 1000);
         }
     };
@@ -120,8 +120,9 @@ public final class GameActivity extends SDLActivity
             fpsLabel.setBackgroundColor(0x99081017);
             FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-            frameParams.topMargin = dp(62);
+                    Gravity.TOP | Gravity.END);
+            frameParams.topMargin = dp(6);
+            frameParams.rightMargin = dp(6);
             root.addView(fpsLabel, frameParams);
         }
 
@@ -192,7 +193,7 @@ public final class GameActivity extends SDLActivity
         try {
             nativeSetStretch(stretch);
         } catch (UnsatisfiedLinkError e) {
-            Log.w(TAG, "libmain no cargada", e);
+            Log.w(TAG, T.t("libmain no cargada"), e);
         }
     }
 
@@ -355,7 +356,7 @@ public final class GameActivity extends SDLActivity
         bar.setBackground(bg);
 
         TextView hint = new TextView(this);
-        hint.setText("Toca un control para elegirlo · arrástralo para moverlo · pellizca para cambiar su tamaño");
+        hint.setText(T.t("Toca un control para elegirlo · arrástralo para moverlo · pellizca para cambiar su tamaño"));
         hint.setTextColor(0xCCFFFFFF);
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         hint.setGravity(Gravity.CENTER);
@@ -363,12 +364,12 @@ public final class GameActivity extends SDLActivity
 
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.addView(toolButton("Tamaño −", v -> controls.resizeSelected(1f / 1.12f)));
-        row.addView(toolButton("Tamaño +", v -> controls.resizeSelected(1.12f)));
-        row.addView(toolButton("Mostrar / ocultar", v -> controls.toggleSelectedVisible()));
-        row.addView(toolButton("Ajustes", v -> showSettings()));
-        row.addView(toolButton("Restablecer", v -> confirmReset()));
-        Button done = toolButton("Listo", v -> controls.setEditing(false));
+        row.addView(toolButton(T.t("Tamaño −"), v -> controls.resizeSelected(1f / 1.12f)));
+        row.addView(toolButton(T.t("Tamaño +"), v -> controls.resizeSelected(1.12f)));
+        row.addView(toolButton(T.t("Mostrar / ocultar"), v -> controls.toggleSelectedVisible()));
+        row.addView(toolButton(T.t("Ajustes"), v -> showSettings()));
+        row.addView(toolButton(T.t("Restablecer"), v -> confirmReset()));
+        Button done = toolButton(T.t("Listo"), v -> controls.setEditing(false));
         ((GradientDrawable) done.getBackground()).setColor(0xFFE07B00);
         row.addView(done);
         bar.addView(row);
@@ -398,10 +399,10 @@ public final class GameActivity extends SDLActivity
 
     private void confirmReset() {
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Restablecer controles")
-                .setMessage("¿Volver a la posición y el tamaño originales de todos los controles?")
-                .setPositiveButton("Restablecer", (d, w) -> controls.resetLayout())
-                .setNegativeButton("Cancelar", null)
+                .setTitle(T.t("Restablecer controles"))
+                .setMessage(T.t("¿Volver a la posición y el tamaño originales de todos los controles?"))
+                .setPositiveButton(T.t("Restablecer"), (d, w) -> controls.resetLayout())
+                .setNegativeButton(T.t("Cancelar"), null)
                 .show();
     }
 
@@ -410,29 +411,29 @@ public final class GameActivity extends SDLActivity
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(20), dp(8), dp(20), dp(8));
 
-        panel.addView(toggle("Imagen estirada a toda la pantalla", controls.stretch, on -> {
+        panel.addView(toggle(T.t("Imagen estirada a toda la pantalla"), controls.stretch, on -> {
             controls.stretch = on;
             applyStretch(on);
         }));
-        panel.addView(toggle("Vibrar al pulsar", controls.haptics, on -> controls.haptics = on));
-        panel.addView(toggle("Ocultar los controles al usar un mando", controls.hideWithGamepad,
+        panel.addView(toggle(T.t("Vibrar al pulsar"), controls.haptics, on -> controls.haptics = on));
+        panel.addView(toggle(T.t("Ocultar los controles al usar un mando"), controls.hideWithGamepad,
                 on -> controls.hideWithGamepad = on));
-        panel.addView(toggle("Dirección inclinando el teléfono", controls.tiltSteering, on -> {
+        panel.addView(toggle(T.t("Dirección inclinando el teléfono"), controls.tiltSteering, on -> {
             controls.tiltSteering = on;
             updateTiltListener();
         }));
-        panel.addView(slider("Sensibilidad de la inclinación", 50, 250,
+        panel.addView(slider(T.t("Sensibilidad de la inclinación"), 50, 250,
                 Math.round(controls.tiltSensitivity * 100), v -> controls.tiltSensitivity = v / 100f));
-        panel.addView(slider("Opacidad de los controles", 15, 100,
+        panel.addView(slider(T.t("Opacidad de los controles"), 15, 100,
                 Math.round(controls.opacity * 100), v -> {
                     controls.opacity = v / 100f;
                     controls.invalidate();
                 }));
 
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Ajustes de los controles")
+                .setTitle(T.t("Ajustes de los controles"))
                 .setView(panel)
-                .setPositiveButton("Cerrar", (d, w) -> controls.save())
+                .setPositiveButton(T.t("Cerrar"), (d, w) -> controls.save())
                 .setOnDismissListener(d -> controls.save())
                 .show();
     }
@@ -511,7 +512,7 @@ public final class GameActivity extends SDLActivity
             }
             prefs.edit().putString("settings_sha256", bundledHash).apply();
         } catch (IOException | NoSuchAlgorithmException e) {
-            Log.w(TAG, "No se pudo instalar " + SETTINGS, e);
+            Log.w(TAG, T.t("No se pudo instalar ") + SETTINGS, e);
         }
     }
 
